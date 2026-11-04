@@ -21,12 +21,6 @@ spring:
   sql:
     init:
       mode: never
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: ${OIDC_ISSUER_URI}
-          jwk-set-uri: ${OIDC_JWK_SET_URI}
 device-ops:
   credentials:
     master-key: ${DEVICE_OPS_CREDENTIAL_MASTER_KEY}
@@ -34,7 +28,6 @@ device-ops:
     mode: oauth2
   runtime:
     auth-mode: oauth2
-    oidc-authority: ${OIDC_AUTHORITY}
   npdms:
     request-signing-key: ${DAC_REQUEST_SIGNING_KEY}
   callback:
@@ -60,3 +53,10 @@ management:
 logging:
   file:
     name: /var/log/sdp/dac/dac.log
+
+npdms:
+  server-dac:
+    enabled: true
+    public-key: /etc/sdp/tls/dac-service-public.pem
+    parser-directory: /opt/sdp/dac/current/parser-release
+    ready-file: /run/sdp-dac/ready

@@ -203,6 +203,19 @@ class RenderSafetyTests(unittest.TestCase):
             self.assertNotIn('-Djava.io.tmpdir=', content)
             self.assertNotIn('BindPaths=', content)
 
+    def test_storage_bucket_matches_backend_and_proxy_routes(self):
+        self.config['minio_bucket'] = 'storage-fixture'
+        renderer.render(self.config, self.target)
+        self.assertIn('minio-bucket: storage-fixture', (self.target / 'be/application-prod.yaml').read_text(encoding='utf-8'))
+        for name in ('be/storage-proxy.conf', 'fe1/sdp.conf', 'fe2/sdp.conf'):
+            self.assertIn('location /storage-fixture/ {', (self.target / name).read_text(encoding='utf-8'))
+
+    def test_storage_bucket_injection_rejected_before_output(self):
+        self.config['minio_bucket'] = 'sdp/; include /tmp/evil;'
+        with self.assertRaises(ValueError):
+            renderer.render(self.config, self.target)
+        self.assertFalse(self.target.exists())
+
     def test_nginx_injection_rejected_before_output(self):
         self.config['external_domain'] = 'host; include /tmp/evil;'
         with self.assertRaises(ValueError):

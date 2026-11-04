@@ -1,0 +1,29 @@
+[Unit]
+Description=SDP private storage TLS gateway
+After=network-online.target sdp-minio.service
+Wants=network-online.target sdp-minio.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+RuntimeDirectory=sdp-storage-proxy
+RuntimeDirectoryMode=0700
+LogsDirectory=sdp/storage-proxy
+LoadCredentialEncrypted=storage.key:/etc/credstore.encrypted/sdp-storage-proxy-tls
+ExecStartPre=/opt/sdp/storage-proxy/bin/nginx -t -c /etc/sdp/storage-proxy.conf -e stderr
+ExecStart=/opt/sdp/storage-proxy/bin/nginx -c /etc/sdp/storage-proxy.conf -g "daemon off;" -e stderr
+ExecReload=/bin/kill -HUP $MAINPID
+KillSignal=SIGQUIT
+TimeoutStopSec=30
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+UMask=0077
+LimitCORE=0
+
+[Install]
+WantedBy=multi-user.target

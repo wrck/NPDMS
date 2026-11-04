@@ -10,6 +10,8 @@ server:
       enabled: false
 
 spring:
+  config:
+    import: "configtree:${CREDENTIALS_DIRECTORY}/"
   flyway:
     enabled: false
   liquibase:
@@ -127,16 +129,28 @@ pms:
   file:
     office-executable: /usr/bin/soffice
     scan:
-      enabled: ${NPDMS_FILE_SCAN_ENABLED}
-      clamav:
-        host: ${NPDMS_CLAMAV_HOST}
-        port: ${NPDMS_CLAMAV_PORT}
+      enabled: false
   integration:
     device-ops:
       enabled: true
       base-url: https://@@backend_tls_name@@:8443
       namespace: npdms
-      bearer-token: ${NPDMS_DEVICE_OPS_BEARER_TOKEN}
-      request-signing-key: ${NPDMS_DAC_REQUEST_SIGNING_KEY}
-      callback-signing-key: ${NPDMS_DAC_CALLBACK_SIGNING_KEY}
+      request-signing-key: ${DAC_REQUEST_SIGNING_KEY}
+      callback-signing-key: ${DAC_CALLBACK_SIGNING_KEY}
       callback-url: https://@@backend_tls_name@@:443/api/v1/pms/integration/device-ops/callbacks
+
+# Approved server identity: short-lived signed JWT; no external OIDC dependency.
+DAC_NAMESPACE: npdms
+SERVER_IP: "@@be_ip@@"
+PUBLIC_ORIGIN: https://@@internal_domain@@
+npdms:
+  server-dac:
+    enabled: true
+    endpoint: https://@@backend_tls_name@@:8443
+    identity-ready-file: /run/sdp/backend-identity-ready
+  server-deployment:
+    enabled: true
+    minio-endpoint: http://127.0.0.1:9000
+    minio-bucket: @@minio_bucket@@
+    storage-public-origin: https://@@external_domain@@
+    ready-file: /run/sdp/backend-ready

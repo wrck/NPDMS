@@ -1,5 +1,5 @@
 [Unit]
-Description=NPDMS native MinIO
+Description=SDP native MinIO
 After=network-online.target
 Wants=network-online.target
 RequiresMountsFor=/data
@@ -14,6 +14,7 @@ LoadCredentialEncrypted=minio-user:/etc/credstore.encrypted/sdp-minio-user
 LoadCredentialEncrypted=minio-password:/etc/credstore.encrypted/sdp-minio-password
 Environment=MINIO_ROOT_USER_FILE=%d/minio-user
 Environment=MINIO_ROOT_PASSWORD_FILE=%d/minio-password
+Environment=MINIO_BROWSER_REDIRECT_URL=https://@@internal_domain@@/minio/
 ExecStart=/opt/sdp/minio/bin/minio --certs-dir /data/minio-runtime/certs server /data/minio --address 127.0.0.1:9000 --console-address 127.0.0.1:9001
 Restart=on-failure
 RestartSec=10

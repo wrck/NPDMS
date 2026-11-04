@@ -15,9 +15,13 @@ def render(config, destination):
         raise ValueError("Internal and external domains must differ")
     if not re.fullmatch(r"[a-z][a-z0-9_]*", config["db_name"]):
         raise ValueError("Invalid database name")
-    if set(config) != {"internal_domain", "external_domain", "backend_tls_name", "db_tls_name", "db_name"}:
+    required = {"internal_domain", "external_domain", "backend_tls_name", "db_tls_name", "db_name"}
+    if not required <= set(config) or set(config) - required - {"minio_bucket"}:
         raise ValueError("Only native deployment DNS/database parameters are accepted")
-    values = {**config, **{f"{k}_ip": v for k, v in IPS.items()}}
+    bucket = config.get("minio_bucket", "sdp")
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]{1,61}[a-z0-9]", bucket):
+        raise ValueError("Invalid MinIO bucket")
+    values = {**config, "minio_bucket": bucket, **{f"{k}_ip": v for k, v in IPS.items()}}
     templates = Path(__file__).parent / "templates"
     if destination.exists():
         raise ValueError("Output already exists; use a new configuration version")
