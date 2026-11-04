@@ -2,6 +2,8 @@
 Description=SDP private storage TLS gateway
 After=network-online.target sdp-minio.service
 Wants=network-online.target sdp-minio.service
+RequiresMountsFor=/data
+ConditionPathIsMountPoint=/data
 
 [Service]
 Type=simple
