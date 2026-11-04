@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.bpm.service.message.dto.BpmMessageSendWhenProcess
 import cn.iocoder.yudao.module.bpm.service.message.dto.BpmMessageSendWhenTaskCreatedReqDTO;
 import cn.iocoder.yudao.module.bpm.service.message.dto.BpmMessageSendWhenTaskTimeoutReqDTO;
 import cn.iocoder.yudao.module.system.api.sms.SmsSendApi;
+import cn.iocoder.yudao.module.system.api.sms.SmsNotificationAvailabilityApi;
 import cn.iocoder.yudao.module.system.api.sms.dto.send.SmsSendSingleToUserReqDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static cn.iocoder.yudao.module.system.enums.ErrorCodeConstants.SMS_SEND_MOBILE_NOT_EXISTS;
+import static cn.iocoder.yudao.module.system.enums.ErrorCodeConstants.SMS_SEND_TEMPLATE_NOT_EXISTS;
+import static cn.iocoder.yudao.module.system.enums.ErrorCodeConstants.SMS_CHANNEL_NOT_EXISTS;
 
 /**
  * BPM 消息 Service 实现类
@@ -32,6 +35,9 @@ public class BpmMessageServiceImpl implements BpmMessageService {
 
     @Resource
     private SmsSendApi smsSendApi;
+
+    @Resource
+    private SmsNotificationAvailabilityApi smsNotificationAvailabilityApi;
 
     @Resource
     private WebProperties webProperties;
@@ -77,15 +83,21 @@ public class BpmMessageServiceImpl implements BpmMessageService {
     }
 
     private void sendSmsNotification(SmsSendSingleToUserReqDTO request) {
+        if (!smsNotificationAvailabilityApi.isEnabled(request.getTemplateCode())) {
+            log.warn("[sendSmsNotification][BPM SMS not enabled, userId={}, templateCode={}]",
+                    request.getUserId(), request.getTemplateCode());
+            return;
+        }
         try {
             smsSendApi.sendSingleSmsToAdmin(request);
         } catch (ServiceException failure) {
-            if (!SMS_SEND_MOBILE_NOT_EXISTS.getCode().equals(failure.getCode())) {
+            if (!SMS_SEND_MOBILE_NOT_EXISTS.getCode().equals(failure.getCode())
+                    && !SMS_SEND_TEMPLATE_NOT_EXISTS.getCode().equals(failure.getCode())
+                    && !SMS_CHANNEL_NOT_EXISTS.getCode().equals(failure.getCode())) {
                 throw failure;
             }
-            // A missing notification address must not roll back approval or suppress its Owner result event.
-            log.warn("[sendSmsNotification][BPM SMS skipped: recipient mobile missing, userId={}, templateCode={}]",
-                    request.getUserId(), request.getTemplateCode());
+            log.warn("[sendSmsNotification][BPM SMS skipped: code={}, userId={}, templateCode={}]",
+                    failure.getCode(), request.getUserId(), request.getTemplateCode());
         }
     }
 

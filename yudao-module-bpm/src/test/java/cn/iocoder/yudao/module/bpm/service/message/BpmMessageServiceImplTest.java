@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.web.config.WebProperties;
 import cn.iocoder.yudao.module.bpm.service.message.dto.*;
 import cn.iocoder.yudao.module.system.api.sms.SmsSendApi;
+import cn.iocoder.yudao.module.system.api.sms.SmsNotificationAvailabilityApi;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -12,6 +13,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.system.enums.ErrorCodeConstants.SMS_SEND_MOBILE_NOT_EXISTS;
 import static cn.iocoder.yudao.module.system.enums.ErrorCodeConstants.SMS_SEND_TEMPLATE_NOT_EXISTS;
+import static cn.iocoder.yudao.module.system.enums.ErrorCodeConstants.SMS_CHANNEL_NOT_EXISTS;
+import static cn.iocoder.yudao.module.system.enums.ErrorCodeConstants.SMS_SEND_MOBILE_TEMPLATE_PARAM_MISS;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -19,6 +22,7 @@ import static org.mockito.Mockito.*;
 class BpmMessageServiceImplTest {
 
     private final SmsSendApi smsSendApi = mock(SmsSendApi.class);
+    private final SmsNotificationAvailabilityApi availability = mock(SmsNotificationAvailabilityApi.class);
     private final BpmMessageServiceImpl service = new BpmMessageServiceImpl();
 
     enum Notice {
@@ -39,7 +43,17 @@ class BpmMessageServiceImplTest {
         ui.setUrl("http://localhost:19191");
         properties.setAdminUi(ui);
         ReflectionTestUtils.setField(service, "smsSendApi", smsSendApi);
+        ReflectionTestUtils.setField(service, "smsNotificationAvailabilityApi", availability);
         ReflectionTestUtils.setField(service, "webProperties", properties);
+        when(availability.isEnabled(anyString())).thenReturn(true);
+    }
+
+    @ParameterizedTest
+    @EnumSource(Notice.class)
+    void unavailableNotificationDoesNotSendOrAbort(Notice notice) {
+        when(availability.isEnabled(notice.template)).thenReturn(false);
+        assertDoesNotThrow(() -> send(notice));
+        verifyNoInteractions(smsSendApi);
     }
 
     @ParameterizedTest
@@ -68,10 +82,19 @@ class BpmMessageServiceImplTest {
     @ParameterizedTest
     @EnumSource(Notice.class)
     void unrelatedSmsFailuresAreStillReported(Notice notice) {
-        ServiceException failure = exception(SMS_SEND_TEMPLATE_NOT_EXISTS);
+        ServiceException failure = exception(SMS_SEND_MOBILE_TEMPLATE_PARAM_MISS, "name");
         when(smsSendApi.sendSingleSmsToAdmin(any())).thenThrow(failure);
 
         assertSame(failure, assertThrows(ServiceException.class, () -> send(notice)));
+    }
+
+    @ParameterizedTest
+    @EnumSource(Notice.class)
+    void removedConfigurationAfterAvailabilityCheckDoesNotAbort(Notice notice) {
+        for (var error : java.util.List.of(SMS_SEND_TEMPLATE_NOT_EXISTS, SMS_CHANNEL_NOT_EXISTS)) {
+            doThrow(exception(error)).when(smsSendApi).sendSingleSmsToAdmin(any());
+            assertDoesNotThrow(() -> send(notice));
+        }
     }
 
     private void send(Notice notice) {

@@ -26,6 +26,7 @@ import cn.iocoder.yudao.module.bpm.service.task.BpmTaskServiceImpl;
 import cn.iocoder.yudao.module.system.api.dept.DeptApi;
 import cn.iocoder.yudao.module.system.api.permission.ExplicitPermissionApi;
 import cn.iocoder.yudao.module.system.api.sms.SmsSendApi;
+import cn.iocoder.yudao.module.system.api.sms.SmsNotificationAvailabilityApi;
 import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
 import cn.iocoder.yudao.module.system.api.user.dto.AdminUserRespDTO;
 import org.flowable.common.engine.impl.history.HistoryLevel;
@@ -60,7 +61,7 @@ import static org.mockito.Mockito.*;
 /**
  * Actual Flowable + H2, Spring transactions, upstream create/deploy/approve/reject and upstream listeners.
  * Only external System APIs and the definition metadata persistence adapter are test doubles.
- * Actual BPM notifications receive missing-mobile failures; result events and business rollback must still work.
+ * Unconfigured BPM notifications are skipped; result events and business rollback must still work.
  * No runtime/history/task/approval result is mocked; production createProcessDefinition performs registration.
  */
 class BpmNormalClosureFlowableTest {
@@ -118,11 +119,12 @@ class BpmNormalClosureFlowableTest {
         var department = mock(DeptApi.class);
         when(department.getDeptMap(anyCollection())).thenReturn(Map.of());
         var sms = mock(SmsSendApi.class);
+        var availability = mock(SmsNotificationAvailabilityApi.class);
         when(sms.sendSingleSmsToAdmin(any())).thenThrow(exception(SMS_SEND_MOBILE_NOT_EXISTS));
         var web = new WebProperties();
         web.setAdminUi(new WebProperties.Ui().setUrl("http://localhost:19191"));
         var messages = new BpmMessageServiceImpl();
-        wire(messages, "smsSendApi", sms, "webProperties", web);
+        wire(messages, "smsSendApi", sms, "smsNotificationAvailabilityApi", availability, "webProperties", web);
         var candidates = new BpmTaskCandidateInvoker(List.of(new BpmTaskCandidateExpressionStrategy()), users);
         var behavior = new BpmActivityBehaviorFactory();
         behavior.setTaskCandidateInvoker(candidates);
