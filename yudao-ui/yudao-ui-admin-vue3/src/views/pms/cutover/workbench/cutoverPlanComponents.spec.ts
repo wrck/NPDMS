@@ -1,6 +1,6 @@
 import { defineComponent, h, nextTick, ref } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { CutoverPlanView } from '@/api/pms/cutover'
+import type { CutoverPlanView, SupportPersonChoice, WireLong } from '@/api/pms/cutover'
 import { getCurrentDeviceSummaries } from '@/api/pms/asset/device'
 import { checkPermi } from '@/utils/permission'
 import CutoverPlanPanel from '../components/CutoverPlanPanel.vue'
@@ -17,7 +17,7 @@ import {
 const api = vi.hoisted(() => ({
   getCutoverExternalState: vi.fn(),
   getCutoverChecklist: vi.fn(),
-  getSupportPersonChoices: vi.fn(async () => []),
+  getSupportPersonChoices: vi.fn<(taskId: WireLong, role: string) => Promise<SupportPersonChoice[]>>(async () => []),
   getProjectContactChoices: vi.fn(async () => []),
   getCutoverPlan: vi.fn(),
   createCutoverPlanDraft: vi.fn(),
@@ -77,10 +77,74 @@ describe('F-CUT-004 mounted plan workbench', () => {
     vi.mocked(getCurrentDeviceSummaries).mockReset().mockResolvedValue([{ deviceId: '9007199254740995', sn: 'SN-001' }] as any)
     api.getCutoverExternalState.mockReset().mockResolvedValue({ checklistId: '301', devices: [], items: [] })
     api.getCutoverChecklist.mockReset().mockResolvedValue({ taskId: '101', checklistId: '301', checklistVersion: 3, status: 'SUBMITTED', items: [] })
+    api.getSupportPersonChoices.mockReset().mockResolvedValue([])
     fileApi.getCurrentReference.mockReset().mockResolvedValue(null)
     accessTarget.location.replace.mockReset()
     accessTarget.close.mockReset()
     vi.stubGlobal('window', { open: vi.fn(() => accessTarget) })
+  })
+
+  it('keeps engineering candidates searchable when another role fails and retries only the failed role', async () => {
+    const candidate: SupportPersonChoice = { reference: { sourceCode: 'SYSTEM_USER', id: '9007199254740993', version: '8' }, name: '搜索工程师', phone: '13800000001' }
+    let failed = true
+    api.getSupportPersonChoices.mockImplementation(async (_task, role) => {
+      if (role === 'CUSTOMER' && failed) throw new Error('customer unavailable')
+      return role === 'DP_FIRST_LINE' ? [candidate] : []
+    })
+    const model = standardPlan([]).content!
+    if (model.editMode !== 'ONLINE_TEMPLATE_STANDARD') throw new Error('fixture')
+    model.supportArrangements.push({ arrangementId: null, roleCode: 'DP_FIRST_LINE', personName: '', phone: '', dutyDescription: '保障', arrivalTime: 1 })
+    const updates = vi.fn()
+    const page = mount(CutoverPlanEditor, { modelValue: model, sourceSnapshot: sourceSnapshot(), taskId: '101', editable: true, 'onUpdate:modelValue': updates }, controls)
+    try {
+      await flush()
+      await vi.waitFor(() => expect(api.getSupportPersonChoices).toHaveBeenCalledTimes(4))
+      await flush()
+      const selector = collect(findByTestId(page.root, 'support-system-1')!, node => typeof node.props?.['remote-method'] === 'function')[0]
+      await (selector.props!.onVisibleChange as Function)(true)
+      await flush()
+      expect(collect(page.root, node => node.props?.label === '搜索工程师')).toHaveLength(1)
+      await (selector.props!['remote-method'] as Function)('不存在')
+      await vi.waitFor(() => expect(collect(page.root, node => node.props?.label === '搜索工程师')).toHaveLength(0))
+      await (selector.props!['remote-method'] as Function)('搜索')
+      await vi.waitFor(() => expect(collect(page.root, node => node.props?.label === '搜索工程师')).toHaveLength(1))
+      await (selector.props!['onUpdate:modelValue'] as Function)('手填姓名')
+      expect(updates).not.toHaveBeenCalled()
+      await (selector.props!['onUpdate:modelValue'] as Function)('SYSTEM_USER:9007199254740993:8')
+      expect(updates.mock.calls.at(-1)![0].supportArrangements[1]).toMatchObject({
+        personName: candidate.name, phone: candidate.phone, personReference: candidate.reference
+      })
+      expect(textOf(page.root)).toContain('客户人员加载失败')
+      failed = false
+      api.getSupportPersonChoices.mockClear()
+      await click(page.root, 'retry-support-CUSTOMER')
+      await vi.waitFor(() => expect(api.getSupportPersonChoices).toHaveBeenCalledTimes(1))
+      await flush()
+      expect(api.getSupportPersonChoices).toHaveBeenCalledTimes(1)
+      expect(api.getSupportPersonChoices).toHaveBeenCalledWith('101', 'CUSTOMER')
+      expect(textOf(page.root)).not.toContain('客户人员加载失败')
+    } finally { page.app.unmount() }
+  })
+
+  it('discards late role candidates after switching tasks', async () => {
+    let completeOld!: (value: SupportPersonChoice[]) => void
+    api.getSupportPersonChoices.mockImplementation(async (taskId, role) => {
+      if (taskId === '101' && role === 'CUSTOMER') return new Promise(resolve => { completeOld = resolve })
+      return role === 'CUSTOMER' ? [{ reference: { sourceCode: 'PROJECT_MEMBER', id: '2', version: '1' }, name: '新任务客户', phone: null }] : []
+    })
+    const taskId = ref('101')
+    const page = mount(defineComponent({ setup: () => () => h(CutoverPlanEditor, {
+      modelValue: standardPlan([]).content!, sourceSnapshot: sourceSnapshot(), taskId: taskId.value, editable: true
+    }) }), {}, controls)
+    try {
+      await flush()
+      taskId.value = '102'
+      await flush()
+      completeOld([{ reference: { sourceCode: 'PROJECT_MEMBER', id: '1', version: '1' }, name: '旧任务客户', phone: null }])
+      await flush()
+      expect(collect(page.root, node => node.props?.label === '新任务客户')).toHaveLength(1)
+      expect(collect(page.root, node => node.props?.label === '旧任务客户')).toHaveLength(0)
+    } finally { page.app.unmount() }
   })
 
   it('keeps incomplete step edits visible and identifies the exact row before saving', async () => {

@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.cutover.service.plan;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.framework.datapermission.core.util.DataPermissionUtils;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberSelectionApi;
 import cn.iocoder.yudao.module.system.api.permission.RoleCandidateFactApi;
 import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
@@ -17,7 +18,7 @@ public class CutoverSupportPersonPolicy {
     private final RoleCandidateFactApi roles;
     private final AdminUserApi users;
     public record Reference(String sourceCode, Long id, Long version) {}
-    public record Choice(Reference reference, String name, String phone) {}
+    public record Choice(Reference reference, String name, String phone, String username, String email) {}
     public record Query(Long tenantId, Long actorId, Long projectId, String roleCode) {}
     public record Validation(Query context, Reference reference, String name, boolean submitting) {}
     private static final Map<String, String> SYSTEM_ROLES = Map.of(
@@ -30,17 +31,20 @@ public class CutoverSupportPersonPolicy {
             for (int page = 1; ; page++) {
                 var batch = members.page(ProjectMemberSelectionApi.Query.builder().tenantId(query.tenantId())
                         .actorId(query.actorId()).projectId(query.projectId()).pageNo(page).pageSize(100).role("END_USER").build());
-                batch.members().forEach(member -> result.add(new Choice(new Reference("PROJECT_MEMBER", member.assignmentId(), member.version()), member.name(), member.phone())));
+                batch.members().forEach(member -> result.add(new Choice(new Reference("PROJECT_MEMBER", member.assignmentId(), member.version()), member.name(), member.phone(), null, null)));
                 if ((long) page * 100 >= batch.total()) return List.copyOf(result);
             }
         }
         String role = systemRole(query.roleCode());
-        var candidates = roles.inspect(new RoleCandidateFactApi.Query(query.tenantId(), role));
+        // 保障人员按本租户有效角色选取，不受操作者的用户目录部门/仅本人范围限制。
+        // 只包围角色事实读取；任务/项目授权在外层，SYSTEM仍校验租户、角色及用户状态。
+        var candidates = DataPermissionUtils.executeIgnore(
+                () -> roles.inspect(new RoleCandidateFactApi.Query(query.tenantId(), role)));
         if (candidates.isEmpty()) return List.of();
         var people = users.getUserMap(candidates.stream().map(RoleCandidateFactApi.Candidate::userId).toList());
         return candidates.stream().filter(candidate -> people.containsKey(candidate.userId())).map(candidate -> {
             var person = people.get(candidate.userId());
-            return new Choice(new Reference("SYSTEM_USER", person.getId(), watermark(candidate.userWatermark())), person.getNickname(), person.getMobile());
+            return new Choice(new Reference("SYSTEM_USER", person.getId(), watermark(candidate.userWatermark())), person.getNickname(), person.getMobile(), person.getUsername(), person.getEmail());
         }).toList();
     }
 
@@ -62,7 +66,9 @@ public class CutoverSupportPersonPolicy {
             }
         } else {
             if (!"SYSTEM_USER".equals(ref.sourceCode())) invalid("工程师必须选择系统用户");
-            var membership = roles.lockAndInspectActor(new RoleCandidateFactApi.ActorQuery(query.tenantId(), ref.id())).stream()
+            // 与候选读取保持同一资格范围，避免跨部门人员选中后在保存时被再次误过滤。
+            var membership = DataPermissionUtils.executeIgnore(
+                    () -> roles.lockAndInspectActor(new RoleCandidateFactApi.ActorQuery(query.tenantId(), ref.id()))).stream()
                     .filter(member -> systemRole(query.roleCode()).equals(member.roleCode())).findFirst().orElse(null);
             if (membership == null || !Objects.equals(watermark(membership.userWatermark()), ref.version())) invalid("人员角色、启用状态或资料已变化，请重新选择");
             var user = users.getUser(ref.id());

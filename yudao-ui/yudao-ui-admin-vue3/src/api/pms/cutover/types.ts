@@ -404,7 +404,7 @@ export interface CutoverPlanSupportArrangement {
 
 export interface CustomerContactReference { contactId: WireLong; contactVersion: number }
 export interface SupportPersonReference { sourceCode: 'SYSTEM_USER' | 'PROJECT_MEMBER'; id: WireLong; version: WireLong }
-export interface SupportPersonChoice { reference: SupportPersonReference; name: string; phone: string | null }
+export interface SupportPersonChoice { reference: SupportPersonReference; name: string; phone: string | null; username?: string | null; email?: string | null }
 
 export interface ProjectContactChoice extends CustomerContactReference { projectId: WireLong; sourceContactId: WireLong; name: string; mobile: string | null; phone: string | null; department: string | null; title: string | null }
 

@@ -30,10 +30,10 @@ public class CutoverSupportPersonChoicesController {
         var scope = scopes.inspect(actor.actorId(), task.getProjectId(), "ACTION_VIEW");
         if (scope == null || !scope.allowed()) throw new SecurityException("项目范围不可见");
         return CommonResult.success(people.choices(new CutoverSupportPersonPolicy.Query(actor.tenantId(), actor.actorId(), task.getProjectId(), roleCode)).stream()
-                .map(choice -> new Choice(new Reference(choice.reference().sourceCode(), choice.reference().id().toString(), choice.reference().version().toString()), choice.name(), choice.phone())).toList());
+                .map(choice -> new Choice(new Reference(choice.reference().sourceCode(), choice.reference().id().toString(), choice.reference().version().toString()), choice.name(), choice.phone(), choice.username(), choice.email())).toList());
     }
     public record Reference(String sourceCode, String id, String version) {}
-    public record Choice(Reference reference, String name, String phone) {}
+    public record Choice(Reference reference, String name, String phone, String username, String email) {}
 
     @ExceptionHandler({SecurityException.class, AccessDeniedException.class})
     public ResponseEntity<CommonResult<CutoverPlanContractException.ErrorData>> forbidden(Exception exception) {

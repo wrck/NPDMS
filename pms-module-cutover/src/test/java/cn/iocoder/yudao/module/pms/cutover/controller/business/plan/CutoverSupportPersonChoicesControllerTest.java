@@ -45,8 +45,18 @@ class CutoverSupportPersonChoicesControllerTest {
                 .andExpect(status().isBadRequest());
         verifyNoInteractions(people);
         when(people.choices(any())).thenReturn(List.of(new CutoverSupportPersonPolicy.Choice(
-                new CutoverSupportPersonPolicy.Reference("PROJECT_MEMBER",2111084153208291328L,3L),"项目成员",null)));
+                new CutoverSupportPersonPolicy.Reference("PROJECT_MEMBER",2111084153208291328L,3L),"项目成员",null,null,null)));
         mvc.perform(get("/api/v1/pms/cutover-tasks/50/support-person-choices").param("roleCode","CUSTOMER"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data[0].reference.id").value("2111084153208291328"));
+    }
+    @Test void returnsSystemIdentityFieldsWithoutChangingReferenceOrName() throws Exception {
+        when(people.choices(any())).thenReturn(List.of(new CutoverSupportPersonPolicy.Choice(
+                new CutoverSupportPersonPolicy.Reference("SYSTEM_USER",2111084153208291328L,3L),
+                "工程师", "13800000001", "engineer.test", "engineer@example.test")));
+        mvc.perform(get("/api/v1/pms/cutover-tasks/50/support-person-choices").param("roleCode","DP_SECOND_LINE"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data[0].reference.id").value("2111084153208291328"))
+                .andExpect(jsonPath("$.data[0].name").value("工程师"))
+                .andExpect(jsonPath("$.data[0].username").value("engineer.test"))
+                .andExpect(jsonPath("$.data[0].email").value("engineer@example.test"));
     }
 }

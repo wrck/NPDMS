@@ -26,6 +26,40 @@ const personChoices = { CUSTOMER: [
 ] }
 
 describe('保障人员明细', () => {
+  it.each(['engineer.one', 'MAIL.ONE@EXAMPLE.TEST', '同名工程师'])('复用公共组件按%s搜索并显示用户名，保存原姓名和引用', async keyword => {
+    const reference = { sourceCode: 'SYSTEM_USER' as const, id: '2111084153208291328', version: '3' }
+    const choices = { DP_SECOND_LINE: [
+      { reference, name: '同名工程师', phone: '13800000001', username: 'engineer.one', email: 'mail.one@example.test' },
+      { reference: { ...reference, id: '2111084153208291329' }, name: '同名工程师', phone: '', username: 'engineer.two', email: 'mail.two@example.test' }
+    ] }
+    const rows = ref<CutoverPlanSupportArrangement[]>([{ arrangementId: null, roleCode: 'DP_SECOND_LINE', personName: '', dutyDescription: '保障', phone: '', arrivalTime: 1 }])
+    const page = mount(defineComponent({ setup: () => () => h(Support, {
+      modelValue: rows.value, personChoices: choices, 'onUpdate:modelValue': value => { rows.value = value }
+    }) }), {}, controls)
+    const find = (node: TestNode, predicate: (item: TestNode) => boolean): TestNode | undefined => {
+      if (predicate(node)) return node
+      for (const child of node.children) { const found = find(child, predicate); if (found) return found }
+    }
+    const settle = async () => { for (let i = 0; i < 8; i++) { await nextTick(); await Promise.resolve() } }
+    try {
+      const wrapper = findByTestId(page.root, 'support-system-0')!
+      const control = find(wrapper, item => typeof item.props?.['remote-method'] === 'function')!
+      ;(control.props!.onVisibleChange as (value: boolean) => void)(true)
+      await settle()
+      ;(control.props!['remote-method'] as (value: string) => void)(keyword)
+      await new Promise(resolve => setTimeout(resolve, 330))
+      await settle()
+      const option = find(wrapper, item => item.props?.value === 'SYSTEM_USER:2111084153208291328:3')
+      expect(option?.props?.label).toBe('engineer.one-同名工程师')
+      const other = find(wrapper, item => item.props?.value === 'SYSTEM_USER:2111084153208291329:3')
+      expect(!!other).toBe(keyword === '同名工程师')
+      ;(control.props!['onUpdate:modelValue'] as (value: string) => void)('SYSTEM_USER:2111084153208291328:3')
+      await settle()
+      expect(rows.value[0]).toMatchObject({ personName: '同名工程师', personReference: reference, phone: '13800000001', dutyDescription: '保障' })
+      expect(rows.value[0]).not.toHaveProperty('username')
+      expect(rows.value[0]).not.toHaveProperty('email')
+    } finally { page.app.unmount() }
+  })
   it('候选异步加载后同一人员自动更新引用版本，保留本轮填写内容', async () => {
     const rows = ref<CutoverPlanSupportArrangement[]>([
       { arrangementId: '1', roleCode: 'CUSTOMER', personName: '样例甲', dutyDescription: '客户保障', phone: '自填电话', arrivalTime: 123,

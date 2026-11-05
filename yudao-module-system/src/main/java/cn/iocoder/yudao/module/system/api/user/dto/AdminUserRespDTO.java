@@ -21,6 +21,8 @@ public class AdminUserRespDTO {
      * 用户昵称
      */
     private String nickname;
+    /** 用户主档账号，用于人员选择展示。 */
+    private String username;
     /**
      * 帐号状态
      *

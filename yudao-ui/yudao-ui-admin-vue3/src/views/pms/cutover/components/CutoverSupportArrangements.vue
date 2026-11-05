@@ -12,7 +12,7 @@
           v-if="!contactReadonly && row.roleCode !== 'CUSTOMER'"
           :data-testid="'support-system-' + $index"
           :model-value="row.personReference ? referenceKey(row.personReference) : row.personName || undefined" :current-label="supportCurrentLabel(row)"
-          :scoped-source="supportSource(row, $index)" placeholder="选择对应角色的系统用户"
+          :scoped-source="supportSource(row, $index)" option-label="nickname-account" placeholder="按姓名、用户名或邮箱搜索"
           @update:model-value="selectPerson($index, $event == null ? undefined : String($event))" />
         <el-select
 v-else-if="!contactReadonly" :data-testid="(row.roleCode === 'CUSTOMER' ? 'support-customer-' : 'support-system-') + $index"
@@ -67,7 +67,8 @@ const supportSource = (row: CutoverPlanSupportArrangement, index: number) => {
   const choices = props.personChoices[row.roleCode] || []
   return systemUserSelection.fromCandidates(
     `cutover-support:${index}:${row.roleCode}:${choices.map(person => referenceKey(person.reference)).join(',')}`,
-    choices.map(person => ({ id: referenceKey(person.reference), nickname: person.name }))
+    choices.map(person => ({ id: referenceKey(person.reference), nickname: person.name,
+      username: person.username || undefined, email: person.email || undefined }))
   )
 }
 const supportCurrentLabel = (row: CutoverPlanSupportArrangement) => {

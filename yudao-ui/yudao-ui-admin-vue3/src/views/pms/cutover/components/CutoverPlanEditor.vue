@@ -54,6 +54,11 @@ v-if="modelValue.overview[slot.field]" owner-context="CUT" object-type="CUTOVER_
       <section ref="supportValidationRoot" class="support-validation" :class="{ 'has-validation-error': !!supportValidationMessage }" tabindex="-1">
       <h4 class="cut-section-title">割接保障人员安排</h4>
       <p v-if="supportValidationMessage" class="validation-message" role="alert">{{ supportValidationMessage }}</p>
+      <p v-if="Object.values(personLoading).some(Boolean)" role="status">正在加载保障人员候选…</p>
+      <p v-for="role in failedPersonRoles" :key="role" role="alert">
+        {{ personRoleLabels[role] }}人员加载失败，已填内容保留。
+        <el-button :data-testid="'retry-support-' + role" link type="primary" :disabled="personLoading[role]" @click="readPersonRole(role)">重新加载</el-button>
+      </p>
       <CutoverSupportArrangements
 :model-value="modelValue.supportArrangements" :readonly="!editable" :patch-approved="patchApproved"
         :person-choices="personChoices" @update:model-value="updateSupport" @patch="$emit('patch-support', $event)" />
@@ -131,6 +136,7 @@ v-if="modelValue.fileArtifactFact" owner-context="CUT" object-type="CUTOVER_PLAN
   </section>
 </template>
 <script setup lang="ts">
+import { getSupportPersonChoices } from '@/api/pms/cutover'
 import * as FileApi from '@/api/pms/platform/file/version-reference'
 import type {
   CutoverPlanRiskFact,
@@ -191,20 +197,37 @@ const pendingUploads = computed(() => fileFactReads.value > 0
 watch(pendingUploads, pending => emit('upload-pending', pending), { immediate: true })
 
 const personChoices = ref<Partial<Record<CutoverPlanSupportArrangement['roleCode'], import('@/api/pms/cutover').SupportPersonChoice[]>>>({})
+type SupportRole = CutoverPlanSupportArrangement['roleCode']
+const personRoleLabels: Record<SupportRole, string> = {
+  CUSTOMER: '客户', DP_FIRST_LINE: '迪普一线工程师', DP_SECOND_LINE: '迪普二线工程师', DP_RND: '迪普研发'
+}
+const personLoading = ref<Partial<Record<SupportRole, boolean>>>({})
+const personErrors = ref<Partial<Record<SupportRole, boolean>>>({})
+const failedPersonRoles = computed(() => (Object.keys(personRoleLabels) as SupportRole[]).filter(role => personErrors.value[role]))
 let personReadSequence = 0
-watch([() => props.taskId, () => props.editable, () => props.patchApproved], async () => {
-  const sequence = ++personReadSequence
-  personChoices.value = {}
-  if (!props.editable && !props.patchApproved) return
-  const api = await import('@/api/pms/cutover')
-  const roles = ['CUSTOMER', 'DP_FIRST_LINE', 'DP_SECOND_LINE', 'DP_RND'] as const
+const readPersonRole = async (role: SupportRole) => {
+  if ((!props.editable && !props.patchApproved) || personLoading.value[role]) return
+  const sequence = personReadSequence
+  const taskId = props.taskId
+  personLoading.value[role] = true
   try {
-    const choices = await Promise.all(roles.map(async role => [role, await api.getSupportPersonChoices(props.taskId, role)] as const))
-    if (sequence === personReadSequence) personChoices.value = Object.fromEntries(choices)
+    const choices = await getSupportPersonChoices(taskId, role)
+    if (sequence !== personReadSequence) return
+    personChoices.value = { ...personChoices.value, [role]: choices }
+    personErrors.value[role] = false
   } catch {
-    // The request layer already shows the source error; keep failed choices empty.
-    if (sequence === personReadSequence) personChoices.value = {}
+    if (sequence === personReadSequence) personErrors.value[role] = true
+  } finally {
+    if (sequence === personReadSequence) personLoading.value[role] = false
   }
+}
+watch([() => props.taskId, () => props.editable, () => props.patchApproved], () => {
+  personReadSequence++
+  personChoices.value = {}
+  personLoading.value = {}
+  personErrors.value = {}
+  if (!props.editable && !props.patchApproved) return
+  for (const role of Object.keys(personRoleLabels) as SupportRole[]) void readPersonRole(role)
 }, { immediate: true })
 
 const standardSections: Array<{ code: CutoverPlanSectionCode; label: string }> = [
@@ -419,7 +442,7 @@ watch(() => {
     content.editMode === 'ONLINE_TEMPLATE_STANDARD'
       ? standardFileSlots.map(slot => content.overview[slot.field]?.referenceKey || `cutover-plan-${props.taskId}-${slot.referenceSuffix}`) : []])
 }, readStandardFileReferences, { immediate: true })
-onBeforeUnmount(() => { standardFileReadSequence++; emit('file-state-pending', false) })
+onBeforeUnmount(() => { personReadSequence++; standardFileReadSequence++; emit('file-state-pending', false) })
 
 const completeUpload = async (selection: FileSelection) => {
   if (props.modelValue.editMode !== 'FULL_FILE_UPLOAD') return

@@ -1453,7 +1453,7 @@ PROJ 复用 `actions/reopen` 命令与 `proj_project_stage_snapshot` 的 REOPEN 
 ### 2026-10-20 保障人员选择差量（需求方批准）
 
 标准方案仅客户、一线必填，二线和研发可选；已添加行保持完整性校验。客户可选择该项目全部当前有效成员或手填；一线、二线、研发分别选择当前租户启用的 PROJECT_MANAGER、probSupporter、probRD 系统角色成员。
-新增只读 GET `/api/v1/pms/cutover-tasks/{taskId}/support-person-choices?roleCode=...`，沿用割接查询权限并校验任务租户及项目范围，返回 `[{reference:{sourceCode,id,version},name,phone}]`；sourceCode 仅 PROJECT_MEMBER 或 SYSTEM_USER。
+新增只读 GET `/api/v1/pms/cutover-tasks/{taskId}/support-person-choices?roleCode=...`，沿用割接查询权限并校验任务租户及项目范围，返回 `[{reference:{sourceCode,id,version},name,phone,username,email}]`；sourceCode 仅 PROJECT_MEMBER 或 SYSTEM_USER。2026-11-05需求方要求复用项目详情、项目列表的公共人员查询组件：系统用户候选补充用户名与邮箱，复用`UserSelect`及`systemUserSelection.fromCandidates`展示“用户名-姓名”、按姓名/用户名/邮箱过滤；项目成员客户的这两个字段为空。字段仅来自当前角色候选已有SYSTEM用户资料，不查询全局目录补人，不改变角色范围或姓名/引用/版本保存契约；用户名、邮箱不写入方案历史。SYSTEM `AdminUserRespDTO`补充用户主档`username`，沿用既有按ID资料映射。
 标准方案人员行及批准后联系人 PATCH 可带可空 `personReference`，原 customerContactReference 用于保留既有历史，不与新引用同时使用。CUT 以可空关系列保存人员来源，不以 JSON 保存固定关系；保存重验所选来源，提交要求工程师选择实际用户并重验角色，姓名不得伪造。成员失效、改角色、用户停用或版本变化均要求重选。客户手填仍需完整姓名和电话。所有授权、项目范围、幂等与根版本并发校验保留；历史来源不回填，批准后变更继续追加原审计链。
 
 
