@@ -1,0 +1,14 @@
+{
+  "name": "npdms-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "NPDMS Electron desktop client, reconstructed from a fixed repository baseline",
+  "main": "src/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.cjs",
+    "check": "node scripts/check.cjs"
+  },
+  "engines": { "node": ">=24" },
+  "devDependencies": { "electron": "45.2.3" }
+}

@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<title>NPDMS 桌面客户端</title><link rel="stylesheet" href="style.css"></head>
+<body><main><header><p class="eyebrow">NPDMS · DESKTOP</p><h1>项目交付工作台</h1><p>完整 NPDMS 平台入口，离线工作集与内置 DAC 服务统一管理。</p></header>
+<section><h2>连接 NPDMS 平台</h2><form id="connect"><label for="origin">平台地址（HTTPS）</label><div class="row"><input id="origin" type="url" placeholder="https://npdms.example.com" required autocomplete="off"><button id="open" type="submit">打开平台</button></div></form><p id="connection" role="status" aria-live="polite">请输入部署的 NPDMS 平台地址。连接不会在此保存登录凭据。</p></section>
+<div class="grid"><section><h2>离线工作集</h2><p id="offline">读取安全策略中…</p><p class="muted">无有效的服务端授权和密钥策略时，离线业务保持关闭。</p></section><section><h2>DAC 内置服务</h2><p id="dac">读取服务状态中…</p><p class="muted">独立进程、独立身份及票据。断网不产生新的采集授权。</p></section></div>
+<footer><p>重建开发版本，尚未完成 Linux 安装与离线业务验收。</p><span id="version"></span></footer></main><script src="renderer.js"></script></body></html>
