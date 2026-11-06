@@ -1,0 +1,51 @@
+{
+  "format": 1,
+  "mode": "development",
+  "sourceCommit": "3bddfe613ec12244e2c9029075a45db1ed36a8e0",
+  "baseline": "d4f6918d67c3f5b32559d7eba6deb6e9a847858a",
+  "filename": "npdms-desktop_INCOMPLETE_DEVELOPMENT_3bddfe6_amd64.deb",
+  "sizeBytes": 198126844,
+  "sha256": "a904f2fba7db0e822813946fff4dd03e11064dd5823e8f52dadadc53862c56b6",
+  "sourceDateEpoch": 1793857314,
+  "appPayloadFiles": 3123,
+  "archiveEntries": 3284,
+  "frontend": {
+    "files": 2825,
+    "bytes": 34656424,
+    "buildSeconds": 50.09,
+    "overlayVersion": "npdms-desktop-dac-v1",
+    "sourceTreeSha256": "427cabe029632a9723c04baff144492b296e79d4e96416740995ef848a3b85c8",
+    "manifestSha256": "dc90e1c4cbed0f540660cad778d7648ff734e4f9615cf8fae031f9fd4c4e39ae",
+    "indexSha256": "5b54b63b3c04759fed01640cf6615d0e63cf38b748905cc01566f0e7cc3c9109",
+    "handlerChecks": 86,
+    "networkRequestsDuringVerification": 0
+  },
+  "dac": {
+    "complete": false,
+    "missing": [
+      "device-ops-server.jar"
+    ],
+    "readiness": "not-tested"
+  },
+  "nodeTests": {
+    "passed": 161,
+    "failed": 0,
+    "skipped": 0
+  },
+  "javascriptSyntax": "passed",
+  "remoteSourceFilesVerified": 58,
+  "githubCheckRuns": 0,
+  "staticInspection": "passed",
+  "checksumSidecar": "passed",
+  "actualInstallation": "not-performed",
+  "electronLaunch": "not-performed",
+  "businessAcceptance": "not-performed",
+  "publicReleasePublished": false,
+  "nativeAttachmentSaved": true,
+  "nativeAttachmentReadback": {
+    "byteIdentical": true,
+    "sizeBytes": 198126844,
+    "sha256": "a904f2fba7db0e822813946fff4dd03e11064dd5823e8f52dadadc53862c56b6"
+  },
+  "previousAttachmentsPreserved": true
+}
