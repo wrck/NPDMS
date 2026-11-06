@@ -5,7 +5,10 @@ const { spawnSync } = require('node:child_process');
 function check(dir) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const file = join(dir, entry.name);
-    if (entry.isDirectory()) check(file);
+    if (entry.isDirectory()) {
+      if (dir === 'resources' && ['frontend', 'dac'].includes(entry.name)) continue;
+      check(file);
+    }
     else if (/\.(cjs|js)$/.test(file)) {
       const result = spawnSync(process.execPath, ['--check', file], { stdio: 'inherit' });
       if (result.status !== 0) process.exit(result.status || 1);

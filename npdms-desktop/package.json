@@ -10,12 +10,15 @@
     "check": "node scripts/check.cjs",
     "install:runtime": "install-electron",
     "package:linux": "node scripts/package-linux.cjs",
-    "inspect:linux": "node scripts/inspect-linux-package.cjs"
+    "inspect:linux": "node scripts/inspect-linux-package.cjs",
+    "build:frontend": "node scripts/build-frontend.cjs",
+    "verify:frontend": "node scripts/verify-frontend.cjs"
   },
   "engines": {
     "node": ">=24"
   },
   "devDependencies": {
-    "electron": "45.2.3"
+    "electron": "45.2.3",
+    "jsdom": "26.1.0"
   }
 }
