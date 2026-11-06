@@ -9,7 +9,7 @@ const http = require('node:http');
 const { serverOrigin } = require('../security.cjs');
 const { nonce, verifyStatus } = require('./protocol.cjs');
 const { parseMetadata, requestStatus, validateStatus } = require('./probe.cjs');
-const WINDOWS_ERROR_CODES = ['DAC_WINDOWS_SERVICE_UNTRUSTED', 'DAC_WINDOWS_SERVICE_REQUIRED'];
+const WINDOWS_ERROR_CODES = ['DAC_WINDOWS_SERVICE_UNTRUSTED', 'DAC_WINDOWS_SERVICE_REQUIRED', 'DAC_WINDOWS_ACCESS_DENIED'];
 const fail = code => Object.assign(new Error(code), { code });
 function createWindowsServiceHost({ helper, execFile = cp.execFile }) {
   if (!path.isAbsolute(helper)) throw fail('DAC_INVALID_CONFIGURATION');
@@ -26,8 +26,12 @@ function createWindowsServiceHost({ helper, execFile = cp.execFile }) {
     for (const name of ['SystemRoot', 'WINDIR', 'TEMP', 'TMP']) if (process.env[name]) env[name] = process.env[name];
     return new Promise((resolve, reject) => {
       execFile(helper, [action], { windowsHide: true, shell: false, timeout: 35000, maxBuffer: 16384,
-        encoding: 'utf8', env, signal }, (error, stdout) => {
-        if (error) { reject(fail(signal?.aborted ? 'DAC_START_CANCELLED' : 'DAC_WINDOWS_SERVICE_UNTRUSTED')); return; }
+        encoding: 'utf8', env, signal }, (error, stdout, stderr) => {
+        if (error) {
+          const code = signal?.aborted ? 'DAC_START_CANCELLED' :
+            /^DAC_WINDOWS_ACCESS_DENIED\r?\n?$/.test(stderr || '') ? 'DAC_WINDOWS_ACCESS_DENIED' : 'DAC_WINDOWS_SERVICE_UNTRUSTED';
+          reject(fail(code)); return;
+        }
         try { resolve(JSON.parse(stdout)); } catch { reject(fail('DAC_WINDOWS_SERVICE_UNTRUSTED')); }
       });
     });

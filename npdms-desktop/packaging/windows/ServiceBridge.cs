@@ -128,6 +128,8 @@ namespace Npdms.Dac.Desktop
                     return 0;
                 }
             }
+            catch (UnauthorizedAccessException) { Console.Error.WriteLine("DAC_WINDOWS_ACCESS_DENIED"); return 1; }
+            catch (System.Security.SecurityException) { Console.Error.WriteLine("DAC_WINDOWS_ACCESS_DENIED"); return 1; }
             catch { Console.Error.WriteLine("DAC_WINDOWS_SERVICE_UNTRUSTED"); return 1; }
         }
     }

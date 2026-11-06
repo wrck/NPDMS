@@ -101,16 +101,22 @@ test('helper boundary rejects tampering, filters environment and accepts no arbi
   const helper = path.join(directory, 'NpdmsServiceBridge.exe');
   const bytes = Buffer.from('test helper bytes; never executed'); fs.writeFileSync(helper, bytes);
   fs.writeFileSync(path.join(directory, 'bridge-manifest.json'), JSON.stringify({ format: 1, bytes: bytes.length, sha256: crypto.createHash('sha256').update(bytes).digest('hex') }));
-  let calls = 0;
+  let calls = 0, nativeError;
   const host = createWindowsServiceHost({ helper, execFile: (file, args, options, done) => {
     calls++; assert.equal(file, helper); assert.deepEqual(args, ['snapshot']); assert.equal(options.shell, false);
     assert.equal(options.windowsHide, true); assert.equal(options.maxBuffer, 16384);
     assert.ok(Object.keys(options.env).every(name => ['SystemRoot', 'WINDIR', 'TEMP', 'TMP'].includes(name)));
-    done(null, JSON.stringify({ result: 'test' }));
+    if (nativeError) done(Error('native failure'), '', nativeError);
+    else done(null, JSON.stringify({ result: 'test' }));
   } });
   await assert.rejects(host('stop'), { code: 'DAC_INVALID_CONFIGURATION' });
   assert.deepEqual(await host('snapshot'), { result: 'test' });
   fs.appendFileSync(helper, 'tampered');
   await assert.rejects(host('snapshot'), { code: 'DAC_WINDOWS_SERVICE_REQUIRED' });
   assert.equal(calls, 1);
+  fs.writeFileSync(helper, bytes);
+  nativeError = 'DAC_WINDOWS_ACCESS_DENIED\n';
+  await assert.rejects(host('snapshot'), { code: 'DAC_WINDOWS_ACCESS_DENIED' });
+  nativeError = 'private local detail: DAC_WINDOWS_ACCESS_DENIED';
+  await assert.rejects(host('snapshot'), { code: 'DAC_WINDOWS_SERVICE_UNTRUSTED', message: 'DAC_WINDOWS_SERVICE_UNTRUSTED' });
 });
