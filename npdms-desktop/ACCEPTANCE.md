@@ -57,3 +57,7 @@ The baseline DAC-specific web application imports missing `@/data/common-command
 Linux DAC identity provisioning and inherited-file-descriptor flock adapters passed six additional tests. Actual tiny Node children proved lock retention when the parent was killed and release only on owned-child exit. No DAC service, Electron or new Java build was launched by these tests.
 
 The final installer builder/inspector additionally bind every installed app file by SHA256 and size, verify the Vue manifest, record the source commit and explicitly record the missing DAC service JAR. Nine packaging tests include repacked/tampered archives. These are archive integrity checks, not operating-system installation acceptance.
+
+## Final development archive
+
+The integrated development Debian archive contains the real Vue bundle and incomplete DAC JRE/parser payload. Size: 198,114,368 bytes; SHA256: `9fd02ddf3732c92f3ed70b4ffce75759b86424870a6f14c1cd35942ceb254b0f`. Its recorded source commit is `a634b4c643645e75fc6b77a451ced3081dce70b3`. Static inspection verified all 3,120 app payload files and 3,281 package entries; checksum-sidecar verification passed. DAC metadata explicitly says incomplete because the service JAR is missing. The archive is currently workspace-only, not published or durably attached. See `packaging/development-build-record.json`. Actual installation, Electron launch and business acceptance remain not performed.

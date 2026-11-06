@@ -1,0 +1,32 @@
+{
+  "format": 1,
+  "mode": "development",
+  "sourceCommit": "a634b4c643645e75fc6b77a451ced3081dce70b3",
+  "baseline": "d4f6918d67c3f5b32559d7eba6deb6e9a847858a",
+  "filename": "npdms-desktop_0.1.0~development.1_amd64.deb",
+  "sizeBytes": 198114368,
+  "sha256": "9fd02ddf3732c92f3ed70b4ffce75759b86424870a6f14c1cd35942ceb254b0f",
+  "sourceDateEpoch": 1793857314,
+  "appPayloadFiles": 3120,
+  "archiveEntries": 3281,
+  "frontendFiles": 2825,
+  "frontendManifestSha256": "b456ff589a1ec46769d86cef332a64643c6a295bfb814c13e01d4b003538369f",
+  "dac": {
+    "complete": false,
+    "missing": [
+      "device-ops-server.jar"
+    ],
+    "readiness": "not-tested"
+  },
+  "nodeTests": {
+    "passed": 79,
+    "failed": 0
+  },
+  "staticInspection": "passed",
+  "checksumSidecar": "passed",
+  "actualInstallation": "not-performed",
+  "electronLaunch": "not-performed",
+  "businessAcceptance": "not-performed",
+  "binaryPublished": false,
+  "artifactLocation": "cloud-workspace-only; source and build instructions are persisted in GitHub"
+}
