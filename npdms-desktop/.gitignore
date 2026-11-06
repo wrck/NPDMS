@@ -5,3 +5,7 @@ artifacts/
 *.log
 *.tmp
 *.enc
+
+# Rebuild these payloads from the pinned source/runtime; do not commit binaries.
+resources/frontend/
+resources/dac/

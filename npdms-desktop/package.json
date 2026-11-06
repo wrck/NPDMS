@@ -7,8 +7,15 @@
   "scripts": {
     "start": "electron .",
     "test": "node --test test/*.test.cjs",
-    "check": "node scripts/check.cjs"
+    "check": "node scripts/check.cjs",
+    "install:runtime": "install-electron",
+    "package:linux": "node scripts/package-linux.cjs",
+    "inspect:linux": "node scripts/inspect-linux-package.cjs"
   },
-  "engines": { "node": ">=24" },
-  "devDependencies": { "electron": "45.2.3" }
+  "engines": {
+    "node": ">=24"
+  },
+  "devDependencies": {
+    "electron": "45.2.3"
+  }
 }

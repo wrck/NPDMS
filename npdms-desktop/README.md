@@ -5,7 +5,7 @@ This is a new implementation based on repository commit `d4f6918d67c3f5b32559d7e
 ## Current checkpoint
 
 - Sandboxed Electron shell with a narrow, sender-verified IPC bridge.
-- Full NPDMS online platform opens separately with no preload or Node privileges, restricted to the chosen HTTPS origin, in a memory-only browser session.
+- The NPDMS online platform window is configured with no preload or Node privileges, restricted to the chosen HTTPS origin, in a memory-only browser session. Real application navigation is not yet tested.
 - New windows, embedded webviews, permission requests and unattended downloads are denied. Certificate validation and the Chromium sandbox stay enabled.
 - Offline business access is closed until the authoritative server lease, allowed operation set, expiration and device-key lifecycle are defined. No business role, state transition or endpoint is invented here.
 - DAC remains an independent service with its own identity and operation tickets. Protocol-v3 Ed25519 discovery validation and controlled Java process-supervision foundations are implemented and tested with fake children. Production DAC assembly and process wiring are still incomplete. See `src/dac/README.md`.
@@ -13,9 +13,9 @@ This is a new implementation based on repository commit `d4f6918d67c3f5b32559d7e
 
 ## Checks
 
-`npm test` runs Node-built-in tests without installing dependencies. `npm run check` checks JavaScript syntax. `npm ci` installs the locked Node dependencies. Electron 45.2.3 requires its separate native-binary installation step (`npx install-electron`) before `npm start` can start the development shell. Electron's official stable release was verified at https://github.com/electron/electron/releases/tag/v45.2.3.
+`npm test` runs Node-built-in tests without installing dependencies. `npm run check` checks JavaScript syntax. `npm ci` installs the locked Node dependencies. Electron 45.2.3 requires its separate native-binary installation step (`npm run install:runtime`) before `npm start` can start the development shell. Electron's official stable release was verified at https://github.com/electron/electron/releases/tag/v45.2.3.
 
-Locked Node dependencies and the official checksum-verified Electron 45.2.3 Linux binary were installed in the cloud workspace. The 33 Node tests and JavaScript syntax checks passed. Electron execution was not attempted because the cloud executor had previously denied process-singleton socket creation. Packaging, actual Linux installation and real offline business acceptance have **not** passed at this checkpoint. Do not add `--no-sandbox`, ignore certificate errors, or call unpacking an installation test. The reconstruction must continue with a permitted Linux desktop environment.
+Locked Node dependencies and the official checksum-verified Electron 45.2.3 Linux binary were installed in the cloud workspace. The 52 Node tests and JavaScript syntax checks passed. Electron execution was not attempted because the cloud executor had previously denied process-singleton socket creation. Packaging, actual Linux installation and real offline business acceptance have **not** passed at this checkpoint. Do not add `--no-sandbox`, ignore certificate errors, or call unpacking an installation test. The reconstruction must continue with a permitted Linux desktop environment.
 
 ## Linux key storage
 
@@ -29,3 +29,11 @@ Locked Node dependencies and the official checksum-verified Electron 45.2.3 Linu
 4. Produce reproducible Linux installers, install them on a real Linux desktop, and test windows and online/offline business flows.
 
 Source publication is limited to the dedicated reconstruction branch. The existing repository baseline and branches remain unchanged.
+
+Detailed verification and remaining acceptance requirements: [ACCEPTANCE.md](ACCEPTANCE.md).
+
+## Development installer and synthetic trial
+
+`npm run package:linux -- --development` builds an explicitly labelled development Debian package. `npm run inspect:linux -- artifacts/<file>.deb` inspects its archive; neither command installs or starts it. Production payload mode refuses missing Vue/DAC resources. See `packaging/README.md`.
+
+`src/offline/trial.cjs` provides a no-network synthetic trial using fixed test records and a TEST-ONLY 15-minute lease. This does not establish production offline authorization or NPDMS synchronization. See `src/offline/TRIAL.md`.

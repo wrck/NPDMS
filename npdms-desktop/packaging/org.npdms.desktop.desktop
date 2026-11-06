@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=NPDMS Desktop
+Comment=NPDMS desktop client
+Exec=/usr/bin/npdms-desktop
+TryExec=/usr/bin/npdms-desktop
+Icon=org.npdms.desktop
+Terminal=false
+Categories=Office;
+StartupWMClass=NPDMS
