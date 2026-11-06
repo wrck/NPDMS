@@ -16,3 +16,7 @@ The Java reactor failed at the SSH adapter: 294 tests ran, 293 passed and one fa
 The separate DAC web UI also cannot build from the fixed commit: `ScriptArtifactEditor.vue` imports the missing `src/data/common-commands` module. Its test run had 100 passing tests, 24 passing suites and two failed import suites. This does not affect the independently built main NPDMS Vue application.
 
 No production Java service or Electron application was started. The failed reactor has exited, and further Java/network build work is halted. A complete payload and runtime acceptance are not claimed.
+
+## Subsequent safe web-source repair
+
+An isolated, hash-guarded overlay repairs the missing web import with an empty typed catalogue and explicit unavailable notice, not guessed command presets. The separate web source now passes 131 tests, type checking and static build; see `dac-web-overrides/README.md` and `packaging/dac-web-build-record.json`. This does not produce the missing Java JAR or resolve the original SSH test failure. Read-only failure diagnosis and an unvalidated fixture proposal are in `packaging/JAVA-BUILD-BLOCKER.md`; no Java re-execution occurred.

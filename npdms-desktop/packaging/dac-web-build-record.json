@@ -1,0 +1,177 @@
+{
+  "format": 1,
+  "baseline": "d4f6918d67c3f5b32559d7eba6deb6e9a847858a",
+  "kind": "static-web-only",
+  "catalogueStatus": "BLOCKED_BY_SPEC",
+  "sourceTreeSha256": "7e39ff8e13f10f5d8b2590ffb5841513742cc296dac368894e767b29c68ab3dd",
+  "overlays": [
+    {
+      "path": "src/components/ScriptArtifactEditor.vue",
+      "sourceSha256": "8e65a9eee20ed8048b9ddc074d5a4a33e52761d65e449047e859413ff6a0161f",
+      "overrideSha256": "954f8e9bd6d0983a0e0bc21b1294b151b0b0d30df3040c06fca2b4565610ad90"
+    },
+    {
+      "path": "src/data/common-commands.ts",
+      "sourceSha256": null,
+      "overrideSha256": "aa14ae9d578324263194edb7e344f419f5535f3a126f0eeb419f3eee259e2e72"
+    },
+    {
+      "path": "src/components/common-commands-unavailable.spec.ts",
+      "sourceSha256": null,
+      "overrideSha256": "42ec319a8552c4e94d961d977be05164dd7be70b3754f176fcc63c44580a15e7"
+    }
+  ],
+  "tests": {
+    "files": 27,
+    "passed": 131,
+    "failed": 0
+  },
+  "stagingTestsPassed": 5,
+  "typecheck": "passed",
+  "staticBuild": "passed",
+  "files": [
+    {
+      "path": "assets/AppShell-CS7O85Ey.js",
+      "bytes": 6039,
+      "sha256": "ff69556a8fb8a9e127f461915e31c92dc533709ba13569b94ccc57fd90c1a4d3"
+    },
+    {
+      "path": "assets/AppShell-dhfLVMxn.css",
+      "bytes": 9719,
+      "sha256": "bb77b7253741d039e671be80e243e648795c09908efcfa30debaff6b04efd1b0"
+    },
+    {
+      "path": "assets/AuthCallbackView-DWpQQRdJ.js",
+      "bytes": 658,
+      "sha256": "8c321ee2579c208e081b8ea7405e51164b02c30a2f96e1e8e979bfcbf30b80c3"
+    },
+    {
+      "path": "assets/CollectionList.vue_vue_type_script_setup_true_lang-DIqE9Zre.js",
+      "bytes": 4472,
+      "sha256": "46d441b2e260312badf93e974967fc3b911148a2448141443b3a3b936fa052b3"
+    },
+    {
+      "path": "assets/CollectionTaskPanel-CDBNHIJV.css",
+      "bytes": 10770,
+      "sha256": "7d0fb4da37350898b92e6e4f8c7b205fff8b3049e9f7aaea1ea001061fd7d7cb"
+    },
+    {
+      "path": "assets/CollectionTaskPanel-CoIWCBXL.js",
+      "bytes": 28352,
+      "sha256": "487fd1ccc6c078f01551703e4705ec956af5536a490fe91a04e74f648f2be2b4"
+    },
+    {
+      "path": "assets/ManagementStatus.vue_vue_type_script_setup_true_lang-CfacV9Sm.js",
+      "bytes": 405,
+      "sha256": "43bfb8763a2e1190a5588f9948f65e8c28e22e5e2faa55c2288fc708d728f1bf"
+    },
+    {
+      "path": "assets/OverviewManagementView-DgBR2EhN.js",
+      "bytes": 4807,
+      "sha256": "ad80e7d9dcff6d60bd165a2bb3599a555dc46fbd8750f4d0ba1f784c80fbaa41"
+    },
+    {
+      "path": "assets/ParserManagementView-WWGUzjRw.js",
+      "bytes": 14139,
+      "sha256": "7250c9e08629ebff15b956e2dd6ca09f4ffc44d31e03fb6b8062b898e4489eed"
+    },
+    {
+      "path": "assets/ProjectCollectionView-F7B0xqq5.css",
+      "bytes": 9795,
+      "sha256": "5e0bf01da875b43e21208b8685788626db9e94d430d8c794973c24876a013063"
+    },
+    {
+      "path": "assets/ProjectCollectionView-VWRDaMlC.js",
+      "bytes": 52602,
+      "sha256": "1ce504c021dc26acad147ec8d7d8b25a739d7bd88125800a8a0281eb6d123e69"
+    },
+    {
+      "path": "assets/RecordsManagementView-BaBI3lTp.js",
+      "bytes": 1043,
+      "sha256": "62505a9e0e4b2ed8a724f15284873076d859d3166290e77d5209f053d1fcf7b6"
+    },
+    {
+      "path": "assets/ScriptsManagementView-B6WbFySJ.js",
+      "bytes": 4038,
+      "sha256": "9f5b97e8b9bcaa9152b1bab2256caefe0a68ed0ff766fa51fece6587466d7a72"
+    },
+    {
+      "path": "assets/SemanticResultPanel-DVEsdgcY.css",
+      "bytes": 4664,
+      "sha256": "a9c7528d86ec058633816db0c85bd473d796d85d427630ad5dbd42b46cea0044"
+    },
+    {
+      "path": "assets/SemanticResultPanel-DqY6DkS0.js",
+      "bytes": 19960,
+      "sha256": "260aed7446723f8a8bdaee60cd8a528de3b5933ce3320f4d68cd90a94e71d512"
+    },
+    {
+      "path": "assets/SettingsManagementView-BhMFTsqs.js",
+      "bytes": 2556,
+      "sha256": "9774aabe1a578c86211d0d0c5b69e239f6e9f5b1ed73d79e7a82efdaf6fd25f3"
+    },
+    {
+      "path": "assets/TasksManagementView-BfPEMzp8.js",
+      "bytes": 11097,
+      "sha256": "b67c70db89c405d10441487d5829f4c14616844633c3a5e9f022e8d44386406c"
+    },
+    {
+      "path": "assets/access-CoeEC9dM.js",
+      "bytes": 579,
+      "sha256": "9c3149b732e14f120a7d8eb70c12a5d60753e56754c09dea28e8d437c8e6bbc3"
+    },
+    {
+      "path": "assets/index-CEIW4pYS.js",
+      "bytes": 1134950,
+      "sha256": "5f457bb4d93ee2c4aa8bc4829c7e461f4ac2d5fa6cdbc86c32400a30bf81262f"
+    },
+    {
+      "path": "assets/index-DkMVkFs3.css",
+      "bytes": 371860,
+      "sha256": "c67373e13d6427735e2789c3f086e0f9f5e330ed3cdaaacfbacf2d3a9bd60fd3"
+    },
+    {
+      "path": "assets/parser-management-CMwq44Ul.js",
+      "bytes": 1267,
+      "sha256": "e6c1c8007b8bb544486e36328ad96c6a43c0b64ea4bf10720b16282c88675815"
+    },
+    {
+      "path": "assets/presentation-CP4d_Id7.js",
+      "bytes": 993,
+      "sha256": "e1ed20bee351933d6effde9f1f61882f92df829ddb0094a8f9e053773dcbd9ac"
+    },
+    {
+      "path": "assets/script-handoff-CTmKeJaB.js",
+      "bytes": 206,
+      "sha256": "536f47806585749771b45288484f41a57b17bcc1501241739ef833700f375fbb"
+    },
+    {
+      "path": "assets/use-request-DElRGCS3.js",
+      "bytes": 1932,
+      "sha256": "428d3f428eba79b4aa7d922de84ca617634534fd529b1db86c4d45e1cbaca1f9"
+    },
+    {
+      "path": "assets/use-request-Dt35Rvl6.css",
+      "bytes": 2237,
+      "sha256": "e44877cc341c4ff9e17ff29d1dacfabbf70c030981f2adf71b8eeb6a15df859d"
+    },
+    {
+      "path": "favicon.svg",
+      "bytes": 292,
+      "sha256": "b6a3b9e6274cc099b67edd70db83661aaa7da0e69863e1524cfcbc0f8602cba4"
+    },
+    {
+      "path": "index.html",
+      "bytes": 572,
+      "sha256": "9ac1190c439b68e8d1d5e134345aba458568a5fda11711df7cc312236083e1c6"
+    }
+  ],
+  "fileCount": 27,
+  "totalBytes": 1700004,
+  "aggregateSha256": "ff513b1a85afae0f6528e9297a13fca59098b1ac2fcdd2879fe1635174be41d0",
+  "embeddedInJar": false,
+  "copiedIntoDesktopResources": false,
+  "serviceLaunched": false,
+  "deviceCommandsExecuted": false,
+  "baselineUnchanged": true
+}
