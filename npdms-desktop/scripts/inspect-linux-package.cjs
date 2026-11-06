@@ -11,6 +11,24 @@ function run(args) {
   if (result.status !== 0) throw new Error(result.stderr || result.error?.message || 'dpkg-deb failed');
   return result.stdout;
 }
+function verifyBuildInfo(app, info) {
+  const { payloadInventory, frontendMetadata, dacMetadata, sourceCommit } = require('./package-linux.cjs');
+  assert.equal(info.format, 1, 'Unsupported build metadata format');
+  assert.equal(info.appId, 'org.npdms.desktop');
+  assert.ok(Number.isSafeInteger(info.sourceDateEpoch) && info.sourceDateEpoch >= 0);
+  assert.equal(info.runtimeAcceptance, 'not-performed');
+  assert.deepEqual(info.windowClass, { configured: null, verification: 'not-performed' });
+  assert.equal(info.sourceCommit, info.sourceCommit === null ? null : sourceCommit(info.sourceCommit));
+  assert.ok(['development', 'production-payload'].includes(info.mode));
+  assert.match(info.electronVersion, /^\d+\.\d+\.\d+$/);
+  assert.deepEqual(info.payloadFiles, payloadInventory(app, ['build-info.json']), 'Installed payload hashes/sizes or file list differ from build-info');
+  assert.deepEqual(info.frontend, frontendMetadata(app), 'Frontend metadata mismatch');
+  assert.deepEqual(info.dac, dacMetadata(app), 'DAC completeness metadata mismatch');
+  if (info.mode === 'production-payload') {
+    assert.equal(info.dac.complete, true, 'Production DAC is incomplete');
+    assert.ok(info.frontend.manifestSHA256, 'Production frontend manifest missing');
+  }
+}
 function inspect(file) {
   file = path.resolve(file);
   const contents = run(['--contents', file]);
@@ -28,6 +46,8 @@ function inspect(file) {
     assert.match(metadata, /^Package: npdms-desktop$/m);
     assert.match(metadata, /^Architecture: amd64$/m);
     assert.match(metadata, /^Depends: .+libnss3/m);
+    assert.match(metadata, /^Depends: .*\butil-linux\b/m);
+    assert.match(metadata, /^Depends: .*\blibsecret-1-0\b/m);
     const base = path.join(temp, 'payload');
     const install = path.join(base, 'opt/npdms-desktop');
     const app = path.join(install, 'resources/app');
@@ -42,15 +62,18 @@ function inspect(file) {
     assert.match(desktop, /^Terminal=false$/m);
     assert.ok(fs.existsSync(path.join(base, 'usr/share/icons/hicolor/scalable/apps/org.npdms.desktop.svg')));
     const info = JSON.parse(fs.readFileSync(path.join(app, 'build-info.json')));
+    verifyBuildInfo(app, info);
+    assert.equal(info.electronVersion, fs.readFileSync(path.join(install, 'version'), 'utf8').trim());
+    assert.doesNotMatch(desktop, /^StartupWMClass=/m, 'Window class remains unverified');
     if (info.mode === 'development') { assert.match(metadata, /^Version: .*~development\.1$/m); assert.match(desktop, /\(Development\)/); }
     else { assert.equal(info.mode, 'production-payload'); require('./package-linux.cjs').validatePayload({}, app); }
     assert.equal(info.runtimeAcceptance, 'not-performed');
     const sha256 = createHash('sha256').update(fs.readFileSync(file)).digest('hex');
-    return { file, sha256, mode: info.mode, archiveEntries: entries.length, staticInspection: 'passed', installation: 'not-performed', electronLaunch: 'not-performed' };
+    return { file, sha256, mode: info.mode, sourceCommit: info.sourceCommit, frontend: info.frontend, dac: info.dac, verifiedPayloadFiles: info.payloadFiles.length, archiveEntries: entries.length, staticInspection: 'passed', installation: 'not-performed', electronLaunch: 'not-performed' };
   } finally { fs.rmSync(temp, { recursive: true, force: true }); }
 }
 if (require.main === module) {
   try { if (process.argv.length !== 3) throw new Error('Usage: node scripts/inspect-linux-package.cjs artifacts/package.deb'); console.log(JSON.stringify(inspect(process.argv[2]), null, 2)); }
   catch (error) { console.error(error.message); process.exitCode = 1; }
 }
-module.exports = { inspect };
+module.exports = { inspect, verifyBuildInfo };

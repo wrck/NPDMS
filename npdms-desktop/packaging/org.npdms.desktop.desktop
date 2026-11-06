@@ -7,4 +7,3 @@ TryExec=/usr/bin/npdms-desktop
 Icon=org.npdms.desktop
 Terminal=false
 Categories=Office;
-StartupWMClass=NPDMS

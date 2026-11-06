@@ -80,3 +80,53 @@ launcher and desktop paths, declared dependencies, mode/version agreement and
 required app files. It extracts only into a temporary directory for inspection.
 It does not install, execute, mutate runtime user data, or establish business
 acceptance.
+
+## Payload integrity and provenance metadata
+
+Set `NPDMS_SOURCE_COMMIT` to the exact source commit when creating a final archive:
+
+```sh
+NPDMS_SOURCE_COMMIT=<40-hex-commit> node scripts/package-linux.cjs --development
+```
+
+An omitted commit is recorded as null. Empty, abbreviated or non-hex values fail.
+The value is declared provenance, not a signature or automatic proof of a clean
+Git checkout. The caller must verify the intended source revision before building.
+
+`resources/app/build-info.json` includes a sorted inventory with SHA256 and byte
+size for **every installed app file**, excluding only build-info.json itself.
+It also records the frontend baseline and exact build-manifest.json SHA256;
+the frontend manifest's complete asset list is checked against the staged files.
+DAC completeness is explicitly recorded with missing paths, independently from
+readiness, which always remains `not-tested`. A present JRE/parser tree without
+the service JAR is incomplete. Production assembly requires both the verified
+frontend manifest and complete DAC payload. Hashes provide integrity checks,
+not code-signing or business acceptance.
+
+The inspector recomputes every app-file hash/size and requires an exact file
+list, detecting missing, altered or unexpected app files. It also checks frontend
+and DAC metadata against extracted payload contents, runtime version, commit
+format, and the util-linux dependency required for `flock`. Private key files,
+user-data directories and development artifact/cache directories are refused in
+app payload inventory. This naming check is an extra guard, not a general secret
+scanner; stage only audited, non-secret build inputs.
+
+`StartupWMClass` is intentionally omitted because no graphical session has
+verified the actual X11/Wayland window identity. build-info.json records this as
+unverified. No working desktop grouping behavior is claimed.
+
+
+## Existing user keyring requirement
+
+`libsecret-1-0` is declared as a standard runtime library dependency for the
+Linux safeStorage Secret Service backend. This library alone does not provide a
+working unlocked keyring. The signed-in graphical user session must already have
+an available supported secure keyring/Secret Service provider. If secure storage
+is unavailable, locked, or reports an insecure backend, the offline trial stays
+disabled. There is no plaintext or other unsafe fallback.
+
+Packaging does not install, configure, unlock, or start any keyring daemon and
+contains no maintainer scripts to do so. Installing system library dependencies
+later is the user's normal package-manager operation, not an action performed by
+the build or inspection commands. No live keyring or safeStorage acceptance has
+been performed in this cloud environment.

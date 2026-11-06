@@ -15,7 +15,7 @@ This is a new implementation based on repository commit `d4f6918d67c3f5b32559d7e
 
 `npm test` runs Node-built-in tests without installing dependencies. `npm run check` checks JavaScript syntax. `npm ci` installs the locked Node dependencies. Electron 45.2.3 requires its separate native-binary installation step (`npm run install:runtime`) before `npm start` can start the development shell. Electron's official stable release was verified at https://github.com/electron/electron/releases/tag/v45.2.3.
 
-Locked Node dependencies and the official checksum-verified Electron 45.2.3 Linux binary were installed in the cloud workspace. The 75 Node tests and JavaScript syntax checks passed. Electron execution was not attempted because the cloud executor had previously denied process-singleton socket creation. Packaging, actual Linux installation and real offline business acceptance have **not** passed at this checkpoint. Do not add `--no-sandbox`, ignore certificate errors, or call unpacking an installation test. The reconstruction must continue with a permitted Linux desktop environment.
+Locked Node dependencies and the official checksum-verified Electron 45.2.3 Linux binary were installed in the cloud workspace. The 79 Node tests and JavaScript syntax checks passed. Electron execution was not attempted because the cloud executor had previously denied process-singleton socket creation. Packaging, actual Linux installation and real offline business acceptance have **not** passed at this checkpoint. Do not add `--no-sandbox`, ignore certificate errors, or call unpacking an installation test. The reconstruction must continue with a permitted Linux desktop environment.
 
 ## Linux key storage
 
