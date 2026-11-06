@@ -9,16 +9,16 @@ This records a new reconstruction, not recovery of unavailable prior work.
 - Official Electron 45.2.3 Linux x64 binary downloaded and extracted by its official installer with the package's checksums. The binary was not launched.
 - `npm test`: 79 focused Node tests passed including platform resource/API isolation, main-process wiring, DOM interactions, manifest integrity, read-only DAC probing, synthetic trial and package-archive tests. These tests use synthetic authorization policies, fake DAC processes and an in-memory keyring substitute. One offline queue test kills its own isolated Node child to verify durable crash recovery.
 - `npm run check`: JavaScript syntax passed.
-- All 23 source/test files at checkpoint `ebfe984339141ca32f1afc6191ad5d76a36a9fcc` were fetched again from GitHub and matched byte-for-byte and by Git blob SHA. Compare against baseline showed only additions under `npdms-desktop/`.
-- No CI statuses were returned for that checkpoint. This is not a CI pass.
+- All 47 source/test files at application checkpoint `a634b4c643645e75fc6b77a451ced3081dce70b3` were fetched again from GitHub and matched byte-for-byte and by Git blob SHA. Compare against baseline showed only additions under `npdms-desktop/`.
+- No GitHub check runs were returned for that application checkpoint. This is not a CI pass.
 
 ## Not executed or not complete
 
 - Electron window launch, visual inspection, real application navigation and platform login.
 - Full Vue resources are built and hashed, with 86 real resource-handler checks and zero network requests. End-to-end platform navigation and actual offline business adapters remain unverified/incomplete.
 - Linux OS keyring integration and existing-key recovery.
-- Real DAC Java process, bundled Java 25 runtime and parser payload.
-- A 119 MB explicitly development-labelled Debian archive was built and statically inspected before Vue/main integration. This is not installation; the integrated package must be rebuilt. No real installation/uninstall/upgrade or RPM/AppImage acceptance has run.
+- Real DAC Java service startup. Linux Java 25 runtime and parser payloads have been staged and packaged, but the service JAR is missing.
+- No real package installation, uninstall, upgrade, or RPM/AppImage acceptance has run. The integrated development Debian archive described below has passed static inspection only.
 - Real online/offline business, idempotency, conflict and authorization-expiry acceptance against NPDMS.
 
 The cloud executor previously denied Electron's process-singleton Unix socket operation with EPERM. The reconstruction does not retry that denied operation, disable sandboxing, or switch execution tools to bypass it. A permitted Linux desktop environment must provide the GUI, OS keyring, package installation privileges and dependencies needed for actual acceptance.
@@ -60,4 +60,4 @@ The final installer builder/inspector additionally bind every installed app file
 
 ## Final development archive
 
-The integrated development Debian archive contains the real Vue bundle and incomplete DAC JRE/parser payload. Size: 198,114,368 bytes; SHA256: `9fd02ddf3732c92f3ed70b4ffce75759b86424870a6f14c1cd35942ceb254b0f`. Its recorded source commit is `a634b4c643645e75fc6b77a451ced3081dce70b3`. Static inspection verified all 3,120 app payload files and 3,281 package entries; checksum-sidecar verification passed. DAC metadata explicitly says incomplete because the service JAR is missing. The archive is currently workspace-only, not published or durably attached. See `packaging/development-build-record.json`. Actual installation, Electron launch and business acceptance remain not performed.
+The integrated development Debian archive contains the real Vue bundle and incomplete DAC JRE/parser payload. Size: 198,114,368 bytes; SHA256: `9fd02ddf3732c92f3ed70b4ffce75759b86424870a6f14c1cd35942ceb254b0f`. Its recorded source commit is `a634b4c643645e75fc6b77a451ced3081dce70b3`. Static inspection verified all 3,120 app payload files and 3,281 package entries; checksum-sidecar verification passed. DAC metadata explicitly says incomplete because the service JAR is missing. The archive was saved as a new private native attachment under a filename explicitly containing `INCOMPLETE_DEVELOPMENT`, together with Chinese limitations and checksum notes. A fresh download into a separate directory matched all 198,114,368 bytes and the SHA256 above. The notes were also read back. No prior file was overwritten. This is not a public release. See `packaging/development-build-record.json`. Actual installation, Electron launch and business acceptance remain not performed.

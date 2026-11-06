@@ -27,6 +27,13 @@
   "actualInstallation": "not-performed",
   "electronLaunch": "not-performed",
   "businessAcceptance": "not-performed",
-  "binaryPublished": false,
-  "artifactLocation": "cloud-workspace-only; source and build instructions are persisted in GitHub"
+  "artifactLocation": "private native attachment, saved as a new file; source and build instructions are persisted in GitHub",
+  "publicReleasePublished": false,
+  "nativeAttachmentSaved": true,
+  "nativeAttachmentReadback": {
+    "byteIdentical": true,
+    "sizeBytes": 198114368,
+    "sha256": "9fd02ddf3732c92f3ed70b4ffce75759b86424870a6f14c1cd35942ceb254b0f"
+  },
+  "deliveryFilename": "npdms-desktop_INCOMPLETE_DEVELOPMENT_0.1.0-1_amd64.deb"
 }
