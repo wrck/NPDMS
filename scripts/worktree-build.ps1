@@ -9,8 +9,13 @@ param(
 $taskLock = Enter-WorktreeBuildLock
 $taskPreviousJava = $env:JAVA_HOME
 try {
-    if (!(Test-Path -LiteralPath "$taskJavaHome/bin/java.exe") -or !(Test-Path -LiteralPath $taskMaven)) { throw 'Pinned toolchain is unavailable' }
+    $taskJavaExecutable = Join-Path $taskJavaHome ('bin/' + $(if ($IsLinux -or $IsMacOS) { 'java' } else { 'java.exe' }))
+    if (!(Test-Path -LiteralPath $taskJavaExecutable) -or !(Test-Path -LiteralPath $taskMaven) -or !(Test-Path -LiteralPath $taskPython)) { throw 'Pinned toolchain is unavailable' }
+    $taskJavaVersion = (& $taskJavaExecutable --version 2>&1 | Out-String)
+    if ($LASTEXITCODE -ne 0 -or $taskJavaVersion -notmatch '25\.0\.1\+8') { throw 'Pinned JDK 25.0.1+8 is required' }
     $env:JAVA_HOME = $taskJavaHome
+    $taskMavenVersion = (& $taskMaven --version 2>&1 | Out-String)
+    if ($LASTEXITCODE -ne 0 -or $taskMavenVersion -notmatch 'Apache Maven 3\.8\.6\b') { throw 'Pinned Maven 3.8.6 is required' }
     Push-Location $taskWorkspace
     try {
         if ($ValidateOnly) { & $taskMaven --version; if ($LASTEXITCODE -ne 0) { throw 'Toolchain validation failed' }; return }

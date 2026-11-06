@@ -3,6 +3,9 @@ $taskWorkspace = Split-Path $PSScriptRoot -Parent
 $taskJavaHome = 'C:/Program Files/Java/jdk-25.0.1+8'
 $taskMaven = 'E:/apache-maven-3.8.6/bin/mvn.cmd'
 $taskPython = 'C:/Users/user/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe'
+if ($env:NPDMS_BUILD_JAVA_HOME) { $taskJavaHome = $env:NPDMS_BUILD_JAVA_HOME }
+if ($env:NPDMS_BUILD_MAVEN) { $taskMaven = $env:NPDMS_BUILD_MAVEN }
+if ($env:NPDMS_BUILD_PYTHON) { $taskPython = $env:NPDMS_BUILD_PYTHON }
 $taskRepository = Join-Path $taskWorkspace '.run/build/m2'
 # Exclusive file lock covers builds, frozen releases and deployment; released on process exit.
 function Enter-WorktreeBuildLock {

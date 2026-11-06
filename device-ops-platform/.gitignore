@@ -1,4 +1,7 @@
 data/
+# Frontend source catalogues are code, not runtime databases.
+!/device-ops-web/src/data/
+!/device-ops-web/src/data/*.ts
 deploy/runtime-*/
 *.mv.db
 *.trace.db

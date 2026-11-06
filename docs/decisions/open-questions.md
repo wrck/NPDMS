@@ -3471,3 +3471,11 @@ P31性能收口：旧预览基线1280.963秒；A3首轮实际执行2058.91秒；
 - 2026-11-03只读交叉核验101,986个P13原始来源绑定，其中17,300个来源ID现在指向不同的系统/执行单业务身份；既有目标身份指纹不一致数为0。例：sourceId86531/86533对应的执行单发生对换。不能通过覆盖旧来源绑定、忽略SOURCE_BINDING_CHANGED或删除历史解决。需来源方提供稳定身份/批次标识，或明确批准追加来源代际映射的契约。
 - P14来源`pm_order_line_from_erp`存在D365、公司01、lineType=1的退单行orderNumber为空（例id29102、29103、47615）。不能猜填订单号或静默丢弃这些记录；需权威订单映射或明确的异常隔离规则。原失败Run保留。
 - 用户已授权修复、必要部署和重启并要求保留数据及密钥；该授权不提供缺失的业务身份。已向用户请求上述来源信息，独立修复继续。证据：`.run/certificate-session-20261102/ssh/result-505-source-audit-be.json`。
+
+### Q-DAC-WINDOWS-SOURCE-COMPLETENESS-20261106 — Windows 完整构建输入核查
+
+- Status: BLOCKED_BY_SPEC（仅命令预设目录与超出现有契约的离线业务）；构建工具和已有 DAC 断网补传独立继续验证。
+- 用户要求完整构建。锁定提交 `08bfe65ad5a7c91e554c4441ffaeb2eaef8627c8` 的原生 Windows DAC 已包含 DPAPI、WinSW、候选端口、协议桥及 Outbox；不能将 Electron Linux 外壳限制描述为原生 Windows 源码缺失。
+- `device-ops-web/src/components/ScriptArtifactEditor.vue` 引用的 `src/data/common-commands.ts` 不在原基线 Git 树中；上级 `.gitignore` 的 `data/` 会忽略该源码目录。本次接入已提交的 `npdms-desktop/dac-web-overrides` 显式缺失提示，修正源码忽略规则，不编造设备命令目录；恢复完整预设仍需原始权威文件。
+- 原 DAC 的 `DesktopTicketFilterTest.unreachableServerNeverFallsBackToLocalDebugAuthentication` 明确禁止断网无授权的新操作；`DesktopSynchronizationTest` 覆盖既有任务结果的断网保留和重试。全平台离线授权、缓存与写入回放不能由“完整构建”推导成新业务契约。
+- 正式冻结依赖 `.run/dac-host/verify-deployed-repairs.py`，本仓库快照未包含该文件；2026-10-29既有构建报告已记录同一缺失。该校验不删减、不伪造。需恢复原验证脚本，另在 Windows 执行既有 MSI/DPAPI 验证后才能称完整原生安装包。

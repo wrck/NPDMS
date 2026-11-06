@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 
 import PanelHeader from '@/components/PanelHeader.vue'
-import { commonCommands } from '@/data/common-commands'
+import { commonCommands, commonCommandsUnavailableMessage } from '@/data/common-commands'
 import type { CommonCommand } from '@/data/common-commands'
 
 import type { ScriptDraft } from '@/types/collection'
@@ -132,7 +132,10 @@ watch(
 
         <section class="common-commands" aria-labelledby="common-commands-title">
           <h3 id="common-commands-title">常用命令</h3>
-          <div class="common-commands__list">
+          <p v-if="!commonCommands.length" class="common-commands__unavailable" role="note">
+            {{ commonCommandsUnavailableMessage }}
+          </p>
+          <div v-else class="common-commands__list">
             <el-button
               v-for="command in commonCommands"
               :key="command.id"
@@ -286,6 +289,12 @@ watch(
   color: var(--slate);
   font-size: 0.75rem;
   font-weight: 500;
+}
+
+.common-commands__unavailable {
+  margin: 0;
+  color: var(--slate);
+  font-size: 0.75rem;
 }
 
 .common-commands__list {

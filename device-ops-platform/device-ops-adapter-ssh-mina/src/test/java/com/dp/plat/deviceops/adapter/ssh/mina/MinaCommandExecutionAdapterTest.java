@@ -15,7 +15,15 @@ import com.dp.plat.deviceops.core.port.CommandExecutionPort.TelnetPrompts;
 import com.dp.plat.deviceops.core.terminal.TerminalTextProcessor;
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.common.config.keys.KeyUtils;
+import org.apache.sshd.common.FactoryManager;
+import org.apache.sshd.common.io.IoHandler;
+import org.apache.sshd.common.io.IoServiceFactory;
+import org.apache.sshd.common.io.nio2.Nio2Service;
+import org.apache.sshd.common.io.nio2.Nio2ServiceFactory;
+import org.apache.sshd.common.io.nio2.Nio2ServiceFactoryFactory;
+import org.apache.sshd.common.io.nio2.Nio2Session;
 import org.apache.sshd.common.session.SessionContext;
+import org.apache.sshd.core.CoreModuleProperties;
 import org.apache.sshd.server.Environment;
 import org.apache.sshd.server.ExitCallback;
 import org.apache.sshd.server.SshServer;
@@ -34,6 +42,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.channels.AsynchronousSocketChannel;
+import java.net.SocketAddress;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -82,12 +92,33 @@ class MinaCommandExecutionAdapterTest {
     private SshClient sharedClient;
     private MinaCommandExecutionAdapter adapter;
     private final AtomicInteger sharedClientStopCalls = new AtomicInteger();
+    private final ExecutorService initialReads = Executors.newVirtualThreadPerTaskExecutor();
 
     @BeforeAll
     void startSshServer() throws Exception {
         hostKey = generateKeyPair();
         clientKey = generateKeyPair();
         server = SshServer.setUpDefaultServer();
+        // The eight-session isolation test deliberately blocks host-key callbacks.
+        // Reserve enough server I/O workers for every arrival before releasing its gate;
+        // a CPU-derived smaller pool deadlocks the fixture, not the production client.
+        CoreModuleProperties.NIO_WORKERS.set(server, 16);
+        server.setIoServiceFactoryFactory(new Nio2ServiceFactoryFactory() {
+            @Override public IoServiceFactory create(FactoryManager manager) {
+                return new Nio2ServiceFactory(manager, null, null) {
+                    @Override public Nio2Session createSession(Nio2Service service, IoHandler handler,
+                            AsynchronousSocketChannel socket, SocketAddress remote) throws Throwable {
+                        return new Nio2Session(service, manager, handler, socket, remote) {
+                            @Override public void startReading() {
+                                // NIO2 may complete the first read inline on the accept thread.
+                                // Our deliberate host-key barrier must not block the next accept.
+                                initialReads.execute(() -> super.startReading());
+                            }
+                        };
+                    }
+                };
+            }
+        });
         server.setHost("127.0.0.1");
         server.setPort(0);
         server.setKeyPairProvider(sessionContext -> {
@@ -141,6 +172,8 @@ class MinaCommandExecutionAdapterTest {
         if (server != null) {
             server.stop(true);
         }
+        initialReads.shutdownNow();
+        assertTrue(initialReads.awaitTermination(5, TimeUnit.SECONDS));
         EmbeddedCommand.awaitWorkers(Duration.ofSeconds(2));
     }
 
