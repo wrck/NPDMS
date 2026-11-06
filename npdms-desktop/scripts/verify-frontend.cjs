@@ -5,6 +5,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { createHash } = require('node:crypto');
 const { createPlatformHandler } = require('../src/platform.cjs');
+const { verifyOverlayProvenance } = require('./frontend-provenance.cjs');
 
 const BASELINE = 'd4f6918d67c3f5b32559d7eba6deb6e9a847858a';
 const MAX_FILES = 10000;
@@ -50,6 +51,7 @@ async function verifyFrontend(directory = path.resolve(__dirname, '../resources/
   let manifest;
   try { manifest = JSON.parse(manifestBytes.toString('utf8')); } catch { fail('invalid manifest JSON'); }
   if (!manifest || manifest.format !== 1 || manifest.baseline !== BASELINE || manifest.frontend !== 'yudao-ui/yudao-ui-admin-vue3' || manifest.buildMode !== 'desktop') fail('manifest provenance mismatch');
+  const desktopProvenance = verifyOverlayProvenance(manifest.provenance);
   if (!Array.isArray(manifest.files) || !manifest.files.length || manifest.files.length > MAX_FILES) fail('invalid manifest file count');
   const expected = new Map();
   let totalBytes = 0;
@@ -102,7 +104,7 @@ async function verifyFrontend(directory = path.resolve(__dirname, '../resources/
     if (hash.digest('hex') !== expected.get(expectedPath).sha256) fail('handler bytes mismatch: ' + route);
     checked++;
   }
-  return { ok: true, baseline: manifest.baseline, fileCount: actual.size, totalBytes,
+  return { ok: true, baseline: manifest.baseline, desktopProvenance, fileCount: actual.size, totalBytes,
     manifestSha256: sha256(manifestBytes), indexSha256: expected.get('index.html').sha256,
     entryScriptCount: scripts.size, entryAssetCount: references.size, handlerChecks: checked, networkRequests: 0 };
 }

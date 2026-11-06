@@ -22,4 +22,4 @@ Every protected DAC desktop operation still resolves an NPDMS ticket online with
 
 Source contracts: device-ops-platform/device-ops-server/src/main/java/com/dp/plat/deviceops/server/desktop; packaging/windows/RuntimeHost.cs, ClientConfiguration.cs, Launcher.cs; scripts/package-dac-desktop.ps1.
 
-The current actual staged resources report `blocked / DAC_RESOURCES_MISSING`, with start disabled and no data directory, key, lock or process created by the status check. Main-process service controls do not by themselves implement the Vue native connection and operation bridge; that separate integration must retain the server challenge, pinned identity and online ticket verification.
+The current actual staged resources report `blocked / DAC_RESOURCES_MISSING`, with start disabled and no data directory, key, lock or process created by the status check. The narrow same-origin bridge is now implemented separately in `bridge.cjs`; read `BRIDGE.md`. The protected runtime callback rereads owned PID/port/identity metadata and invalidates in-flight bridge work on stop/exit. These source and synthetic transport checks are not real Vue pairing or protected-operation acceptance.

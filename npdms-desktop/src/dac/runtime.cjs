@@ -9,7 +9,7 @@ const { environment } = require('./protocol.cjs');
 const { ensurePrivateDirectory, provisionIdentity } = require('./identity.cjs');
 const { loadMasterKey } = require('./key-vault.cjs');
 const { createLinuxLockHost } = require('./linux-lock.cjs');
-const { createReadinessProbe } = require('./probe.cjs');
+const { createReadinessProbe, readMetadata } = require('./probe.cjs');
 const { DacSupervisor } = require('./supervisor.cjs');
 const BASELINE = 'd4f6918d67c3f5b32559d7eba6deb6e9a847858a';
 const PARSER = 'parser-releases/device-command-output-1.4.0';
@@ -21,7 +21,7 @@ const REQUIRED = ['device-ops-server.jar', 'jre/bin/java', 'jre/release', 'jre/l
 const DAC_ERROR_CODES = Object.freeze(['DAC_INVALID_CONFIGURATION', 'DAC_BUSY', 'DAC_UNSUPPORTED_PLATFORM',
   'DAC_RESOURCES_MISSING', 'DAC_RESOURCES_INVALID', 'DAC_RESOURCES_UNVERIFIED', 'DAC_VAULT_UNAVAILABLE',
   'DAC_RECOVERY_REQUIRED', 'DAC_ENVIRONMENT_MISMATCH', 'DAC_DATA_UNTRUSTED', 'DAC_LOCK_UNAVAILABLE',
-  'DAC_START_FAILED', 'DAC_START_CANCELLED']);
+  'DAC_START_FAILED', 'DAC_START_CANCELLED', 'DAC_NOT_READY', 'DAC_CONTEXT_INVALIDATED']);
 const failure = code => Object.assign(new Error(code), { code });
 function absolute(value) {
   return typeof value === 'string' && path.isAbsolute(value) && path.resolve(value) === value &&
@@ -191,7 +191,7 @@ function createDacRuntime({ resourcesDirectory, dataRoot, vault, lockHost = crea
   }
   function finish(op) {
     if (op.pending || op.lease || operation !== op) return;
-    operation = null; pairing = null;
+    operation = null; pairing = null; op.controller.abort();
     if (op.cancelled) { state = 'stopped'; reason = 'DAC_STOPPED'; }
     else if (!op.failed) { state = 'stopped'; reason = 'DAC_PROCESS_EXITED'; }
     op.resolveDone();
@@ -199,7 +199,7 @@ function createDacRuntime({ resourcesDirectory, dataRoot, vault, lockHost = crea
   async function start(input) {
     if (operation) throw failure('DAC_BUSY');
     const config = configuration(input);
-    const op = { cancelled: false, pending: true, lease: false, supervisor: null, failed: false };
+    const op = { cancelled: false, pending: true, lease: false, supervisor: null, failed: false, controller: new AbortController(), context: null };
     op.done = new Promise(resolve => { op.resolveDone = resolve; });
     operation = op; state = 'starting'; reason = 'DAC_STARTING'; pairing = null;
     const check = () => { if (op.cancelled) throw failure('DAC_START_CANCELLED'); };
@@ -292,6 +292,8 @@ function createDacRuntime({ resourcesDirectory, dataRoot, vault, lockHost = crea
         inheritedEnv: { PATH: '/usr/bin:/bin', LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8' } }, key);
       check();
       if (!op.supervisor.child || !op.lease) throw failure('DAC_START_FAILED');
+      op.context = Object.freeze({ pid: op.supervisor.child.pid, publicKey: identity.publicKey,
+        instanceId: verified.instanceId, port: verified.port, ...config, runtimeFile, protectedDirectory: directory });
       pairing = { pairingCode: identity.pairingCode, port: verified.port };
       state = 'ready'; reason = 'DAC_READY';
     } catch (error) {
@@ -311,13 +313,35 @@ function createDacRuntime({ resourcesDirectory, dataRoot, vault, lockHost = crea
   async function stop() {
     const op = operation;
     if (!op) return status();
-    op.cancelled = true; pairing = null; state = 'stopping'; reason = 'DAC_STOP_PENDING';
+    op.cancelled = true; pairing = null; op.controller.abort(); state = 'stopping'; reason = 'DAC_STOP_PENDING';
     try { op.supervisor?.stop(); } catch { /* A signal error is not evidence of exit. */ }
     let timer;
     try { await Promise.race([op.done, new Promise(resolve => { timer = setTimeout(resolve, stopTimeoutMs); })]); }
     finally { clearTimeout(timer); }
     return status();
   }
-  return Object.freeze({ status, start, stop });
+  // This callback capability is main-process only and is never exposed through
+  // preload/IPC. Each use rereads protected metadata; the bridge must additionally
+  // authenticate fresh nonce status on the exact connection carrying its request.
+  async function withOwnedContext(expected, use) {
+    const requested = configuration(expected);
+    if (typeof use !== 'function') throw failure('DAC_INVALID_CONFIGURATION');
+    const op = operation, context = op?.context;
+    const isCurrent = () => operation === op && !!context && state === 'ready' &&
+      op.lease && !op.cancelled && !op.controller.signal.aborted && op.supervisor?.child?.pid === context.pid;
+    if (!isCurrent()) throw failure('DAC_NOT_READY');
+    if (requested.serverUrl !== context.serverUrl || requested.webOrigin !== context.webOrigin) throw failure('DAC_ENVIRONMENT_MISMATCH');
+    let metadata;
+    try { metadata = await readMetadata(context.runtimeFile, context.protectedDirectory, process.getuid(), op.controller.signal); }
+    catch { throw failure('DAC_CONTEXT_INVALIDATED'); }
+    if (!isCurrent() || metadata.pid !== context.pid || metadata.port !== context.port ||
+        metadata.publicKey !== context.publicKey || metadata.instanceId !== context.instanceId) throw failure('DAC_CONTEXT_INVALIDATED');
+    const publicContext = Object.freeze({ pid: context.pid, publicKey: context.publicKey, instanceId: context.instanceId,
+      port: context.port, serverUrl: context.serverUrl, webOrigin: context.webOrigin, signal: op.controller.signal, isCurrent });
+    const result = await use(publicContext);
+    if (!isCurrent()) throw failure('DAC_CONTEXT_INVALIDATED');
+    return result;
+  }
+  return Object.freeze({ status, start, stop, withOwnedContext });
 }
 module.exports = { createDacRuntime, DAC_ERROR_CODES };

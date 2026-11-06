@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const { parseArgs, validatePayload, copyTree, build } = require('../scripts/package-linux.cjs');
+const { BASELINE, expectedOverlayProvenance } = require('../scripts/frontend-overlays.cjs');
 const { inspect } = require('../scripts/inspect-linux-package.cjs');
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'npdms-package-test-'));
@@ -87,10 +88,15 @@ test('frontend manifest hashes and baseline are verified, including missing or a
   const { payloadInventory, frontendMetadata } = require('../scripts/package-linux.cjs');
   write(root, 'resources/frontend/index.html', 'frontend');
   const frontend = path.join(root, 'resources/frontend');
-  const manifest = { format: 1, baseline: 'b'.repeat(40), buildMode: 'desktop', files: payloadInventory(frontend) };
+  const manifest = { format: 1, baseline: BASELINE, buildMode: 'desktop', provenance: { ...expectedOverlayProvenance(), sourceTreeSha256: 'a'.repeat(64) }, files: payloadInventory(frontend) };
   write(root, 'resources/frontend/build-manifest.json', JSON.stringify(manifest));
   const metadata = frontendMetadata(root);
-  assert.equal(metadata.baseline, 'b'.repeat(40));
+  assert.equal(metadata.baseline, BASELINE);
+  assert.equal(metadata.desktopProvenance.overlayVersion, 'npdms-desktop-dac-v1');
+  const valid = JSON.stringify(manifest);
+  delete manifest.provenance; write(root, 'resources/frontend/build-manifest.json', JSON.stringify(manifest));
+  assert.throws(() => frontendMetadata(root), /overlay provenance/);
+  write(root, 'resources/frontend/build-manifest.json', valid);
   assert.match(metadata.manifestSHA256, /^[a-f0-9]{64}$/);
   assert.equal(metadata.fileCount, 1);
   write(root, 'resources/frontend/index.html', 'tampered');

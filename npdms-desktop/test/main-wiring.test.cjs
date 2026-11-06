@@ -10,7 +10,7 @@ const main = path.join(__dirname, '../src/main.cjs');
 const realRequire = createRequire(main);
 const tick = () => new Promise(resolve => setImmediate(resolve));
 async function fixture(overrides = {}) {
-  const dacCalls = [], dacOptions = [];
+  const dacCalls = [], dacOptions = [], bridgeOptions = [];
   const runtime = { status: () => ({ state: 'blocked', reason: 'DAC_PAYLOAD_INCOMPLETE', canStart: false, canStop: false }), start: async config => { dacCalls.push(config); return { state: 'ready' }; }, stop: async () => ({ state: 'stopped' }), ...overrides };
   const handlers = new Map(), windows = [], sessions = [];
   const makeSession = () => { const s = new EventEmitter(); s.setPermissionRequestHandler = fn => { s.permissions = fn; }; s.setPermissionCheckHandler = fn => { s.check = fn; };
@@ -23,10 +23,10 @@ async function fixture(overrides = {}) {
   }
   const app = new EventEmitter(); Object.assign(app, { requestSingleInstanceLock: () => true, whenReady: async () => {}, getVersion: () => '0.1.0', getPath: () => '/unused-test-userdata', quit() {}, exit() { throw Error('unexpected exit'); } });
   const electron = { app, BrowserWindow: Window, ipcMain: { handle: (name, fn) => handlers.set(name, fn) }, session: { defaultSession: makeSession(), fromPartition: name => { assert.equal(name.startsWith('persist:'), false); return makeSession(); } }, Menu: { setApplicationMenu() {} }, safeStorage: { isEncryptionAvailable: () => false } };
-  vm.runInNewContext(fs.readFileSync(main, 'utf8'), { require: name => name === 'electron' ? electron : name === './dac/runtime.cjs' ? { DAC_ERROR_CODES: ['DAC_RESOURCES_MISSING', 'DAC_RECOVERY_REQUIRED'], createDacRuntime: options => { dacOptions.push(options); return runtime; } } : name === 'node:fs' ? { ...fs, existsSync: file => file.endsWith('frontend/index.html') || fs.existsSync(file) } : realRequire(name), __dirname: path.dirname(main), console });
+  vm.runInNewContext(fs.readFileSync(main, 'utf8'), { require: name => name === 'electron' ? electron : name === './dac/bridge.cjs' ? { createDacBridge: options => { bridgeOptions.push(options); return async () => new Response('{\"ok\":true}'); } } : name === './dac/runtime.cjs' ? { DAC_ERROR_CODES: ['DAC_RESOURCES_MISSING', 'DAC_RECOVERY_REQUIRED'], createDacRuntime: options => { dacOptions.push(options); return runtime; } } : name === 'node:fs' ? { ...fs, existsSync: file => file.endsWith('frontend/index.html') || fs.existsSync(file) } : realRequire(name), __dirname: path.dirname(main), console });
   await tick();
   const event = { sender: windows[0].webContents, senderFrame: windows[0].webContents.mainFrame };
-  return { handlers, windows, sessions, event, app, dacCalls, dacOptions };
+  return { handlers, windows, sessions, event, app, dacCalls, dacOptions, bridgeOptions };
 }
 test('main exposes narrow sender-checked IPC and refuses insecure keyring trial start', async () => {
   const f = await fixture();
@@ -88,4 +88,16 @@ test('preload exposes only fixed DAC operations without raw IPC or Node objects'
   assert.deepEqual(Object.keys(api).sort(), ['dacStart', 'dacStop', 'openPlatform', 'status', 'trialAdd', 'trialList', 'trialResolve', 'trialStart', 'trialSync']);
   api.dacStart('https://npdms.example'); api.dacStop();
   assert.deepEqual(invocations, [['desktop:dac-start', 'https://npdms.example'], ['desktop:dac-stop']]);
+});
+
+test('platform bridge stays on configured origin and cannot access the shell IPC', async () => {
+  const f = await fixture();
+  await f.handlers.get('desktop:open-platform')(f.event, 'https://npdms.example');
+  assert.equal(f.bridgeOptions.length, 1); assert.equal(f.bridgeOptions[0].origin, 'https://npdms.example');
+  const result = await f.sessions[1].handle(new Request('https://npdms.example/__npdms_desktop/dac/status?port=8280&nonce=' + 'a'.repeat(64)));
+  assert.equal(result.status, 200); assert.deepEqual(await result.json(), { ok: true });
+  const platformEvent = { sender: f.windows[1].webContents, senderFrame: f.windows[1].webContents.mainFrame };
+  for (const channel of ['desktop:dac-start', 'desktop:dac-stop', 'desktop:status']) await assert.rejects(f.handlers.get(channel)(platformEvent, 'https://npdms.example'), /UNTRUSTED/);
+  let decision; f.sessions[1].request({ url: 'http://127.0.0.1:8280/api/v1/desktop/status', resourceType: 'xhr' }, value => { decision = value; });
+  assert.equal(decision.cancel, true);
 });

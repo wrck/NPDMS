@@ -9,6 +9,7 @@ const { createPlatformHandler, isAllowedPlatformRequest } = require('./platform.
 const { LinuxKeyVault } = require('./key-store.cjs');
 const { loadMasterKey } = require('./dac/key-vault.cjs');
 const { createDacRuntime, DAC_ERROR_CODES } = require('./dac/runtime.cjs');
+const { createDacBridge } = require('./dac/bridge.cjs');
 const { createTrialSession } = require('./offline/trial.cjs');
 const { recoverAbandonedLock } = require('./offline/index.cjs');
 const shellUrl = pathToFileURL(join(__dirname, '../resources/index.html')).href;
@@ -44,7 +45,8 @@ async function openPlatform(origin) {
     });
     // Real packaged Vue assets retain the configured HTTPS origin. Only the
     // existing API namespaces are proxied; remote TLS is verified by Node fetch.
-    platformSession.protocol.handle('https', createPlatformHandler({ origin, frontendDirectory }));
+    const dacHandler = createDacBridge({ origin, withOwnedContext: (expected, use) => dacRuntime.withOwnedContext(expected, use) });
+    platformSession.protocol.handle('https', createPlatformHandler({ origin, frontendDirectory, dacHandler }));
     window = new BrowserWindow({ width: 1440, height: 920, minWidth: 960, minHeight: 640,
       title: 'NPDMS', show: false, webPreferences: { ...secureWebPreferences(), session: platformSession } });
     platformWindow = window; activeOrigin = origin;

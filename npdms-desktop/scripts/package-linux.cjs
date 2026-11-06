@@ -6,6 +6,8 @@ const os = require('node:os');
 const { spawnSync } = require('node:child_process');
 const { createHash } = require('node:crypto');
 const config = require('../packaging/linux.json');
+const { verifyOverlayProvenance } = require('./frontend-provenance.cjs');
+const { BASELINE } = require('./frontend-overlays.cjs');
 const root = path.resolve(__dirname, '..');
 const assert = require('node:assert/strict');
 function parseArgs(args) {
@@ -74,12 +76,13 @@ function frontendMetadata(app) {
   const bytes = fs.readFileSync(manifestFile);
   const manifest = JSON.parse(bytes);
   assert.equal(manifest.format, 1, 'Unsupported frontend manifest format');
-  assert.match(manifest.baseline, /^[a-f0-9]{40}$/, 'Invalid frontend baseline');
+  assert.equal(manifest.baseline, BASELINE, 'Invalid frontend baseline');
+  const desktopProvenance = verifyOverlayProvenance(manifest.provenance);
   assert.equal(manifest.buildMode, 'desktop', 'Expected desktop frontend build');
   assert.ok(Array.isArray(manifest.files), 'Frontend manifest files required');
   const declared = [...manifest.files].sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
   assert.deepEqual(declared, files, 'Frontend manifest file hashes/sizes differ from staged payload');
-  return { present: true, baseline: manifest.baseline, manifestSHA256: createHash('sha256').update(bytes).digest('hex'), fileCount: files.length };
+  return { present: true, baseline: manifest.baseline, desktopProvenance, manifestSHA256: createHash('sha256').update(bytes).digest('hex'), fileCount: files.length };
 }
 function dacMetadata(app) {
   const directory = path.join(app, 'resources/dac');

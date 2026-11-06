@@ -7,6 +7,7 @@ const path = require('node:path');
 const os = require('node:os');
 const crypto = require('node:crypto');
 const { EventEmitter } = require('node:events');
+const { expectedOverlayProvenance } = require('../scripts/frontend-overlays.cjs');
 const { createDacRuntime, DAC_ERROR_CODES } = require('../src/dac/runtime.cjs');
 const { createBuildInfo, payloadInventory } = require('../scripts/package-linux.cjs');
 const CONFIG = { serverUrl: 'https://server.example/api', webOrigin: 'https://web.example' };
@@ -34,7 +35,7 @@ function fixture(t, options = {}) {
   fs.mkdirSync(frontend, { recursive: true });
   fs.writeFileSync(path.join(frontend, 'index.html'), '<!doctype html><title>Synthetic fixture</title>');
   fs.writeFileSync(path.join(frontend, 'build-manifest.json'), JSON.stringify({ format: 1,
-    baseline: 'd4f6918d67c3f5b32559d7eba6deb6e9a847858a', buildMode: 'desktop', files: payloadInventory(frontend) }));
+    baseline: 'd4f6918d67c3f5b32559d7eba6deb6e9a847858a', buildMode: 'desktop', provenance: { ...expectedOverlayProvenance(), sourceTreeSha256: 'a'.repeat(64) }, files: payloadInventory(frontend) }));
   function inventory() {
     // Exercise the actual package producer schema. The reconstructed application
     // commit differs from the upstream frontend/DAC source baseline.
@@ -310,4 +311,51 @@ test('an uncertain release is not retried by overlapping supervisor/runtime erro
   await rejectCode(f.runtime.start(CONFIG), 'DAC_LOCK_UNAVAILABLE');
   assert.equal(closes, 1); assert.equal(f.runtime.status().state, 'stopping');
   assert.equal(f.runtime.status().canStart, false);
+});
+
+function publishFixtureRuntime(f) {
+  const directory = f.directory(CONFIG), child = f.children.at(-1);
+  const identity = fs.readFileSync(path.join(directory, 'desktop-identity.properties'), 'utf8');
+  const publicKey = Buffer.from(/^public=(.+)$/m.exec(identity)[1], 'base64').subarray(-32).toString('hex');
+  const file = path.join(directory, 'desktop-runtime.properties');
+  fs.writeFileSync(file, `port=8280\npid=${child.pid}\npublicKey=${publicKey}\ninstanceId=9c84c376-21cd-43e5-915a-25ace20d7167\n`, { mode: 0o600 });
+  return file;
+}
+test('main-only owned context rereads metadata and exposes no path, key or mutable child', async t => {
+  const f = fixture(t); await rejectCode(f.runtime.withOwnedContext(CONFIG, () => assert.fail()), 'DAC_NOT_READY');
+  await f.runtime.start(CONFIG); publishFixtureRuntime(f);
+  let called = 0;
+  const result = await f.runtime.withOwnedContext(CONFIG, async context => {
+    called++; assert.equal(Object.isFrozen(context), true); assert.equal(context.isCurrent(), true);
+    assert.deepEqual(Object.keys(context).sort(), ['instanceId', 'isCurrent', 'pid', 'port', 'publicKey', 'serverUrl', 'signal', 'webOrigin']);
+    assert.equal(context.pid, f.children[0].pid); assert.equal(context.port, 8280);
+    return 'bounded callback result';
+  });
+  assert.equal(result, 'bounded callback result'); assert.equal(called, 1);
+  await rejectCode(f.runtime.withOwnedContext({ ...CONFIG, webOrigin: 'https://wrong.example' }, () => assert.fail()), 'DAC_ENVIRONMENT_MISMATCH');
+});
+test('missing, stale or substituted runtime metadata blocks the bridge before transmission', async t => {
+  const f = fixture(t); await f.runtime.start(CONFIG);
+  await rejectCode(f.runtime.withOwnedContext(CONFIG, () => assert.fail()), 'DAC_CONTEXT_INVALIDATED');
+  for (const [before, after] of [['pid=100', 'pid=999'], ['port=8280', 'port=8281'], ['9c84c376-', '8c84c376-']]) {
+    const file = publishFixtureRuntime(f); fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace(before, after));
+    await rejectCode(f.runtime.withOwnedContext(CONFIG, () => assert.fail()), 'DAC_CONTEXT_INVALIDATED');
+  }
+  const file = publishFixtureRuntime(f); fs.unlinkSync(file); fs.symlinkSync('/etc/passwd', file);
+  await rejectCode(f.runtime.withOwnedContext(CONFIG, () => assert.fail()), 'DAC_CONTEXT_INVALIDATED');
+});
+test('stop aborts in-flight owned context and stale callback output never reports success', async t => {
+  const f = fixture(t); await f.runtime.start(CONFIG); publishFixtureRuntime(f);
+  let captured, release;
+  const callbackStarted = new Promise(resolve => { release = resolve; });
+  const request = f.runtime.withOwnedContext(CONFIG, async context => {
+    captured = context; release();
+    await new Promise(resolve => context.signal.addEventListener('abort', resolve, { once: true }));
+    return 'must not escape after exit';
+  });
+  await callbackStarted;
+  const rejection = rejectCode(request, 'DAC_CONTEXT_INVALIDATED');
+  await f.runtime.stop(); await rejection;
+  assert.equal(captured.signal.aborted, true); assert.equal(captured.isCurrent(), false);
+  await rejectCode(f.runtime.withOwnedContext(CONFIG, () => assert.fail()), 'DAC_NOT_READY');
 });

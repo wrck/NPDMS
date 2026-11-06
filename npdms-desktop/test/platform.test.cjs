@@ -108,3 +108,18 @@ test('upload limits, encoding rejection, and fetch timeouts are bounded', async 
   const fixture2 = await fixture(t, { timeoutMs: 10, fetch: async (url, { signal }) => new Promise((resolve, reject) => { signal.addEventListener('abort', () => reject(signal.reason), { once: true }); }) });
   assert.equal((await fixture2.handler(req('/admin-api/test'))).status, 502);
 });
+
+test('desktop DAC namespace is handled locally before API/static routing and fails closed without bridge', async t => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'npdms-bridge-route-'));
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  await fs.writeFile(path.join(directory, 'index.html'), '<html>not a bridge</html>');
+  let calls = 0;
+  const opts = { origin: 'https://npdms.example', frontendDirectory: directory, fetch: async () => assert.fail('bridge namespace must not proxy to remote backend') };
+  const disabled = createPlatformHandler(opts);
+  assert.equal((await disabled(new Request('https://npdms.example/__npdms_desktop/dac/status'))).status, 503);
+  const active = createPlatformHandler({ ...opts, dacHandler: async request => { calls++; assert.equal(request.method, 'POST'); return new Response('bounded bridge response'); } });
+  assert.equal(await (await active(new Request('https://npdms.example/__npdms_desktop/dac/connect', { method: 'POST', body: '{}' }))).text(), 'bounded bridge response');
+  assert.equal(calls, 1);
+  assert.equal((await active(new Request('https://evil.example/__npdms_desktop/dac/connect', { method: 'POST' }))).status, 403);
+  assert.equal(calls, 1);
+});

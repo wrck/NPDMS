@@ -5,13 +5,14 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
 const { createHash } = require('node:crypto');
+const { expectedOverlayProvenance } = require('../scripts/frontend-overlays.cjs');
 const { verifyFrontend, BASELINE } = require('../scripts/verify-frontend.cjs');
 async function fixture(t) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'npdms-manifest-'));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   await fs.mkdir(path.join(root, 'assets'));
   const files = { 'index.html': '<html><script type="module" src="/assets/main.js"></script><link rel="stylesheet" href="/assets/style.css"></html>', 'assets/main.js': 'export default 1;', 'assets/style.css': 'body {color: black}' };
-  const manifest = { format: 1, baseline: BASELINE, frontend: 'yudao-ui/yudao-ui-admin-vue3', buildMode: 'desktop', files: [] };
+  const manifest = { format: 1, baseline: BASELINE, frontend: 'yudao-ui/yudao-ui-admin-vue3', buildMode: 'desktop', provenance: { ...expectedOverlayProvenance(), sourceTreeSha256: 'a'.repeat(64) }, files: [] };
   for (const [name, contents] of Object.entries(files)) {
     await fs.writeFile(path.join(root, name), contents);
     manifest.files.push({ path: name, size: Buffer.byteLength(contents), sha256: createHash('sha256').update(contents).digest('hex') });
@@ -56,4 +57,15 @@ test('rejects missing or remote index references even with matching hashes', asy
     Object.assign(f.manifest.files[0], { size: Buffer.byteLength(html), sha256: createHash('sha256').update(html).digest('hex') });
     await f.save(); await assert.rejects(verifyFrontend(f.root));
   }
+});
+
+test('rejects missing, stale and extra desktop-overlay provenance despite matching asset hashes', async t => {
+  for (const mutate of [
+    m => { delete m.provenance; },
+    m => { m.provenance.overlayVersion = 'web-only'; },
+    m => { m.provenance.sources[0].overrideSha256 = '0'.repeat(64); },
+    m => { m.provenance.unchangedContracts[0].sha256 = '0'.repeat(64); },
+    m => { m.provenance.sourceTreeSha256 = '../invalid'; },
+    m => { m.provenance.unexpected = true; }
+  ]) { const f = await fixture(t); mutate(f.manifest); await f.save(); await assert.rejects(verifyFrontend(f.root)); }
 });

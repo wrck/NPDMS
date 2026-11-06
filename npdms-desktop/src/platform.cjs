@@ -49,10 +49,10 @@ function message(status, text) {
 }
 
 function createPlatformHandler({ origin: configuredOrigin, frontendDirectory, fetch: fetchImpl = globalThis.fetch,
-  timeoutMs = 30000, maxUploadBytes = 16 * 1024 * 1024 }) {
+  timeoutMs = 30000, maxUploadBytes = 16 * 1024 * 1024, dacHandler = null }) {
   const origin = serverOrigin(configuredOrigin);
   if (typeof frontendDirectory !== 'string' || !path.isAbsolute(frontendDirectory)) throw new Error('ABSOLUTE_FRONTEND_DIRECTORY_REQUIRED');
-  if (typeof fetchImpl !== 'function' || !Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || !Number.isSafeInteger(maxUploadBytes) || maxUploadBytes <= 0) throw new Error('INVALID_PLATFORM_OPTIONS');
+  if ((dacHandler !== null && typeof dacHandler !== 'function') || typeof fetchImpl !== 'function' || !Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || !Number.isSafeInteger(maxUploadBytes) || maxUploadBytes <= 0) throw new Error('INVALID_PLATFORM_OPTIONS');
   const csp = `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ${origin.replace(/^https:/, 'wss:')}; object-src 'none'; frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`;
 
   async function proxy(request, url) {
@@ -139,6 +139,7 @@ function createPlatformHandler({ origin: configuredOrigin, frontendDirectory, fe
       segments = url.pathname.split('/').slice(1).map(segment => decodeURIComponent(segment));
       if (segments.some(s => s === '.' || s === '..' || /[\\/\x00-\x1f\x7f]/.test(s) || /%[0-9a-f]{2}/i.test(s))) return message(403, 'Unsafe path');
     } catch { return message(403, 'Unsafe path'); }
+    if (/^\/__npdms_desktop\/dac(?:\/|$)/.test(url.pathname)) return dacHandler ? dacHandler(request) : message(503, 'Desktop DAC bridge unavailable');
     if (/^\/(?:admin-api|api\/v1\/pms)(?:\/|$)/.test(url.pathname)) return proxy(request, url);
     if (!['GET', 'HEAD'].includes(request.method)) return message(405, 'Method not allowed');
     let root;
