@@ -12,7 +12,7 @@ function setup(t, overrides = {}) {
   t.after(() => dom.window.close());
   const api = {
     status: async () => ({ ok: true, data: { version: '0.1.0', baseline: 'd4f6918', frontend: { bundled: true }, offline: { enabled: false, reason: '真实离线业务未启用' }, dac: { state: 'not-configured' }, trial: { state: 'not-started', keyVaultAvailable: false } } }),
-    openPlatform: async () => ({ ok: true }), trialStart: async () => ({ ok: true, data: { state: 'active' } }),
+    openPlatform: async () => ({ ok: true }), dacStart: async () => ({ ok: true }), dacStop: async () => ({ ok: true }), trialStart: async () => ({ ok: true, data: { state: 'active' } }),
     trialList: async () => ({ ok: true, data: { drafts: [], queue: [] } }),
     trialAdd: async () => ({ ok: true }), trialSync: async () => ({ ok: true, data: { state: 'accepted' } }),
     trialResolve: async () => ({ ok: true }), ...overrides
@@ -59,4 +59,21 @@ test('expired trial and rejected start retain an honest failure state', async t 
   assert.match(f.get('trial-state').textContent, /保持关闭/); assert.equal(f.get('trial-controls').hidden, true);
   f.get('trial-refresh').click(); await tick(); assert.match(f.get('trial-result').textContent, /已过期/);
   assert.equal(f.window.document.body.textContent.includes('private internal detail'), false);
+});
+
+test('DAC controls remain closed for missing payload and start only on an explicit click', async t => {
+  let calls = 0;
+  const f = setup(t, { dacStart: async () => { calls++; return { ok: false }; } });
+  await tick(); assert.equal(calls, 0); assert.equal(f.get('dac-start').disabled, true); assert.equal(f.get('dac-stop').disabled, true);
+  f.get('dac-start').click(); await tick(); assert.equal(calls, 0);
+});
+test('DAC pending clicks are serialized and show only the safe service state', async t => {
+  let finish, calls = 0, stopped = 0;
+  const data = { version: '0.1.0', baseline: 'd4f6918', frontend: { bundled: true }, offline: { reason: '未启用' }, trial: { state: 'not-started' }, dac: { state: 'not-started', canStart: true, canStop: false } };
+  const f = setup(t, { status: async () => ({ ok: true, data }), dacStart: input => { assert.equal(input, 'https://npdms.example'); calls++; return new Promise(resolve => { finish = resolve; }); }, dacStop: async () => { stopped++; data.dac = { state: 'stopped', canStart: true, canStop: false }; return { ok: true }; } });
+  await tick(); assert.equal(calls, 0); f.get('origin').value = 'https://npdms.example';
+  f.get('dac-start').click(); f.get('dac-start').click(); assert.equal(calls, 1); assert.equal(f.get('dac-start').disabled, true);
+  data.dac = { state: 'ready', canStart: false, canStop: true, pairingCode: 'ABCD' }; finish({ ok: true }); await tick();
+  assert.match(f.get('dac-action').textContent, /未发起配对/); assert.match(f.get('dac').textContent, /业务链路尚待验证/); assert.match(f.get('dac').textContent, /ABCD/);
+  f.get('dac-stop').click(); await tick(); assert.equal(stopped, 1); assert.equal(f.get('dac-stop').disabled, true);
 });

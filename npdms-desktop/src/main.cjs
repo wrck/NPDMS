@@ -8,12 +8,14 @@ const { serverOrigin, isSameOrigin, secureWebPreferences, requireTrustedSender }
 const { createPlatformHandler, isAllowedPlatformRequest } = require('./platform.cjs');
 const { LinuxKeyVault } = require('./key-store.cjs');
 const { loadMasterKey } = require('./dac/key-vault.cjs');
+const { createDacRuntime, DAC_ERROR_CODES } = require('./dac/runtime.cjs');
 const { createTrialSession } = require('./offline/trial.cjs');
 const { recoverAbandonedLock } = require('./offline/index.cjs');
 const shellUrl = pathToFileURL(join(__dirname, '../resources/index.html')).href;
 const frontendDirectory = join(__dirname, '../resources/frontend');
 let shellWindow, platformWindow, activeOrigin, trialSession, trialStarting;
 let platformOpening = false;
+let dacRuntime, shutdownInProgress = false, shutdownAllowed = false;
 
 function denyPermissions(targetSession) {
   targetSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
@@ -76,7 +78,7 @@ async function startTrial() {
   })();
   try { return await trialStarting; } finally { trialStarting = null; }
 }
-const SAFE_CODES = new Set(['AUTH_EXPIRED', 'CLOCK_UNTRUSTED', 'STORE_LOCKED', 'STORE_CORRUPT',
+const SAFE_CODES = new Set([...DAC_ERROR_CODES, 'AUTH_EXPIRED', 'CLOCK_UNTRUSTED', 'STORE_LOCKED', 'STORE_CORRUPT',
   'TRIAL_INPUT_REJECTED', 'TRIAL_CAPACITY_EXCEEDED', 'TRIAL_LEASE_MISSING', 'TRIAL_LEASE_INVALID',
   'SYNC_BUSY', 'NOT_BLOCKED', 'RECOVERY_REQUIRED', 'FRONTEND_NOT_BUILT', 'PLATFORM_BUSY', 'INVALID_SERVER_ORIGIN', 'HTTPS_ORIGIN_REQUIRED']);
 function safeCode(error) { return SAFE_CODES.has(error?.code || error?.message) ? (error.code || error.message) : 'OPERATION_UNAVAILABLE'; }
@@ -92,15 +94,24 @@ else {
   app.on('second-instance', () => { if (shellWindow) { if (shellWindow.isMinimized()) shellWindow.restore(); shellWindow.focus(); } });
   app.whenReady().then(async () => {
     Menu.setApplicationMenu(null); denyPermissions(session.defaultSession);
+    dacRuntime = createDacRuntime({ resourcesDirectory: join(__dirname, '../resources/dac'),
+      dataRoot: join(app.getPath('userData'), 'dac-service-v1'), vault: keyVault() });
     shellWindow = new BrowserWindow({ width: 1100, height: 900, minWidth: 800, minHeight: 650,
       title: 'NPDMS 桌面客户端', webPreferences: secureWebPreferences(join(__dirname, 'preload.cjs')) });
     guardWindow(shellWindow, url => url === shellUrl);
+    // Retain the control window when an owned DAC process has not exited yet.
+    shellWindow.on('close', event => { if (!shutdownAllowed) { event.preventDefault(); app.quit(); } });
     registerIpc('desktop:status', () => ({ version: app.getVersion(), baseline: 'd4f6918d67c3f5b32559d7eba6deb6e9a847858a',
       frontend: { bundled: existsSync(join(frontendDirectory, 'index.html')) },
       offline: { enabled: false, reason: '真实离线业务未启用：等待服务端授权与密钥策略。' },
       trial: trialSession ? trialSession.status() : { state: 'not-started', keyVaultAvailable: keyVault().isAvailable() },
-      dac: { state: 'not-configured' } }));
+      dac: dacRuntime.status() }));
     registerIpc('desktop:open-platform', value => openPlatform(serverOrigin(value)));
+    registerIpc('desktop:dac-start', value => {
+      const origin = serverOrigin(value);
+      return dacRuntime.start({ serverUrl: origin, webOrigin: origin });
+    });
+    registerIpc('desktop:dac-stop', () => dacRuntime.stop());
     registerIpc('desktop:trial-start', () => startTrial());
     for (const [channel, method] of [['list', 'list'], ['add', 'addDraft'], ['sync', 'syncSimulated'], ['resolve', 'resolveConflict']]) {
       registerIpc(`desktop:trial-${channel}`, input => {
@@ -110,6 +121,17 @@ else {
     }
     await shellWindow.loadURL(shellUrl);
   }).catch(() => { app.exit(1); });
-  app.on('before-quit', () => { try { trialSession?.close(); } catch { /* Durable state remains recoverable after interruption. */ } });
+  app.on('before-quit', event => {
+    if (shutdownAllowed) return;
+    event.preventDefault();
+    if (shutdownInProgress) return;
+    shutdownInProgress = true;
+    Promise.resolve().then(() => dacRuntime?.stop()).then(status => {
+      if (status?.state === 'stopping' || status?.canStop === true) { shellWindow?.show(); return; }
+      try { trialSession?.close(); } catch { /* Durable state remains recoverable after interruption. */ }
+      shutdownAllowed = true;
+      app.quit();
+    }).catch(() => { shellWindow?.show(); }).finally(() => { shutdownInProgress = false; });
+  });
   app.on('window-all-closed', () => app.quit());
 }

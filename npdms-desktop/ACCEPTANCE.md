@@ -7,7 +7,7 @@ This records a new reconstruction, not recovery of unavailable prior work.
 
 - `npm ci` completed using the committed dependency lock.
 - Official Electron 45.2.3 Linux x64 binary downloaded and extracted by its official installer with the package's checksums. The binary was not launched.
-- `npm test`: 79 focused Node tests passed including platform resource/API isolation, main-process wiring, DOM interactions, manifest integrity, read-only DAC probing, synthetic trial and package-archive tests. These tests use synthetic authorization policies, fake DAC processes and an in-memory keyring substitute. One offline queue test kills its own isolated Node child to verify durable crash recovery.
+- `npm test`: 126 focused Node tests passed including platform resource/API isolation, main-process wiring, DOM interactions, manifest integrity, read-only DAC probing, synthetic trial and package-archive tests. These tests use synthetic authorization policies, fake DAC processes and an in-memory keyring substitute. One offline queue test kills its own isolated Node child to verify durable crash recovery.
 - `npm run check`: JavaScript syntax passed.
 - All 47 source/test files at application checkpoint `a634b4c643645e75fc6b77a451ced3081dce70b3` were fetched again from GitHub and matched byte-for-byte and by Git blob SHA. Compare against baseline showed only additions under `npdms-desktop/`.
 - No GitHub check runs were returned for that application checkpoint. This is not a CI pass.
@@ -61,3 +61,9 @@ The final installer builder/inspector additionally bind every installed app file
 ## Final development archive
 
 The integrated development Debian archive contains the real Vue bundle and incomplete DAC JRE/parser payload. Size: 198,114,368 bytes; SHA256: `9fd02ddf3732c92f3ed70b4ffce75759b86424870a6f14c1cd35942ceb254b0f`. Its recorded source commit is `a634b4c643645e75fc6b77a451ced3081dce70b3`. Static inspection verified all 3,120 app payload files and 3,281 package entries; checksum-sidecar verification passed. DAC metadata explicitly says incomplete because the service JAR is missing. The archive was saved as a new private native attachment under a filename explicitly containing `INCOMPLETE_DEVELOPMENT`, together with Chinese limitations and checksum notes. A fresh download into a separate directory matched all 198,114,368 bytes and the SHA256 above. The notes were also read back. No prior file was overwritten. This is not a public release. See `packaging/development-build-record.json`. Actual installation, Electron launch and business acceptance remain not performed.
+
+## DAC main-process checkpoint after the saved archive
+
+The trusted shell now has explicit DAC start/stop controls. A runtime coordinator verifies the actual package manifest schema, complete JRE/parser/service inventory and exact environment before protected key/identity provisioning. Forty-one coordinator tests and new main/preload/DOM tests cover fail-closed resources, recovery, concurrent starts, cancellation, owned shutdown and uncertain lock release. The whole Node suite passed 126 tests; JavaScript syntax passed. A read-only check against the actual incomplete staged resources returned `DAC_RESOURCES_MISSING`, disabled startup and created no data directory. No Java, Electron or network service was launched.
+
+These source changes are later than the saved development archive, whose immutable source commit remains `a634b4c643645e75fc6b77a451ced3081dce70b3`. Service lifecycle wiring is not Vue pairing or protected-operation acceptance; the narrow same-origin bridge is still being implemented.
