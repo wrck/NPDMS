@@ -14,7 +14,7 @@ function fixture(options = {}) {
   const host = async (action, signal) => {
     calls.push(action);
     if (options.host) return options.host(action, signal);
-    return { serviceState: 'Running', ...config, ...options.environment,
+    return { serviceState: 'Running', ownershipVerified: true, ...config, ...options.environment,
       metadata: `port=8280\npid=${pid}\npublicKey=${key}\ninstanceId=${instanceId}\n` };
   };
   const request = (params, callback) => {
@@ -85,7 +85,7 @@ test('cancellation while native start is pending never restores a stale ready co
   let unblock;
   const f = fixture({ host: async (action) => {
     if (action === 'start') await new Promise(resolve => { unblock = resolve; });
-    return { serviceState: 'Stopped', ...config, metadata: null };
+    return { serviceState: 'Stopped', ...config, metadata: null, ownershipVerified: false };
   } });
   const started = f.runtime.start(config);
   while (!unblock) await new Promise(resolve => setImmediate(resolve));
@@ -100,7 +100,7 @@ test('helper boundary rejects tampering, filters environment and accepts no arbi
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const helper = path.join(directory, 'NpdmsServiceBridge.exe');
   const bytes = Buffer.from('test helper bytes; never executed'); fs.writeFileSync(helper, bytes);
-  fs.writeFileSync(path.join(directory, 'bridge-manifest.json'), JSON.stringify({ format: 1, bytes: bytes.length, sha256: crypto.createHash('sha256').update(bytes).digest('hex') }));
+  fs.writeFileSync(path.join(directory, 'bridge-manifest.json'), JSON.stringify({ format: 1, ownershipBoundary: 'scm-process-listener', bytes: bytes.length, sha256: crypto.createHash('sha256').update(bytes).digest('hex') }));
   let calls = 0, nativeError;
   const host = createWindowsServiceHost({ helper, execFile: (file, args, options, done) => {
     calls++; assert.equal(file, helper); assert.deepEqual(args, ['snapshot']); assert.equal(options.shell, false);
@@ -119,4 +119,10 @@ test('helper boundary rejects tampering, filters environment and accepts no arbi
   await assert.rejects(host('snapshot'), { code: 'DAC_WINDOWS_ACCESS_DENIED' });
   nativeError = 'private local detail: DAC_WINDOWS_ACCESS_DENIED';
   await assert.rejects(host('snapshot'), { code: 'DAC_WINDOWS_SERVICE_UNTRUSTED', message: 'DAC_WINDOWS_SERVICE_UNTRUSTED' });
+});
+
+test('a signed response cannot compensate for missing native process ownership verification', async () => {
+  const f = fixture({ environment: { ownershipVerified: false } });
+  await assert.rejects(f.runtime.start(config), { code: 'DAC_WINDOWS_SERVICE_UNTRUSTED' });
+  assert.deepEqual(f.calls, ['snapshot']);
 });

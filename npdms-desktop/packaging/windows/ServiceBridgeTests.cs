@@ -21,6 +21,7 @@ namespace Npdms.Dac.Desktop
         }
         private static int Main()
         {
+            ServiceOwnershipTests.Run();
             ServiceBridge.CheckAcl(Acl(WellKnownSidType.LocalSystemSid, WellKnownSidType.BuiltinAdministratorsSid), false);
             ServiceBridge.CheckAcl(Acl(WellKnownSidType.LocalServiceSid, WellKnownSidType.LocalServiceSid), true);
             Reject(Acl(WellKnownSidType.LocalSystemSid, WellKnownSidType.BuiltinUsersSid), true);

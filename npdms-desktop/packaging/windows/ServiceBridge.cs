@@ -54,9 +54,14 @@ namespace Npdms.Dac.Desktop
         }
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool GetFileInformationByHandle(SafeFileHandle handle, out FileInfo info);
-        private static FileStream ProtectedFile(string path, bool service, long maximum)
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern uint GetFinalPathNameByHandle(SafeFileHandle handle, System.Text.StringBuilder name, uint size, uint flags);
+        private static FileStream ProtectedFile(string path, bool service, long maximum, bool publicData = false)
         {
-            NoLinks(path);
+            // Public config/endpoint are opened directly using their existing read ACL.
+            // The private root is never traversed for ACL reads. Runtime trust additionally
+            // requires SCM + live process and listener ownership below; no fallback path.
+            if (!publicData) NoLinks(path);
             var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
             try
             {
@@ -64,12 +69,16 @@ namespace Npdms.Dac.Desktop
                 if (!GetFileInformationByHandle(stream.SafeFileHandle, out info) || info.Links != 1
                     || (info.Attributes & (uint)(FileAttributes.ReparsePoint | FileAttributes.Directory)) != 0
                     || stream.Length < 1 || stream.Length > maximum) throw new IOException();
+                var finalPath = new System.Text.StringBuilder(32768);
+                uint length = GetFinalPathNameByHandle(stream.SafeFileHandle, finalPath, (uint)finalPath.Capacity, 0);
+                if (length == 0 || length >= finalPath.Capacity
+                    || !String.Equals(finalPath.ToString(), @"\\?\" + Path.GetFullPath(path), StringComparison.OrdinalIgnoreCase)) throw new IOException();
                 CheckAcl(stream.GetAccessControl(), service);
                 return stream;
             }
             catch { stream.Dispose(); throw; }
         }
-        private static void CheckService()
+        private static string CheckService()
         {
             using (var key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\NpdmsDac", false))
             {
@@ -91,6 +100,9 @@ namespace Npdms.Dac.Desktop
                 using (ProtectedFile(image, false, 100 * 1024 * 1024)) { }
                 using (ProtectedFile(Path.Combine(install, "SdpDacHost.exe"), false, 100 * 1024 * 1024)) { }
                 using (ProtectedFile(Path.ChangeExtension(image, ".xml"), false, 1024 * 1024)) { }
+                DirectoryCheck(Path.Combine(install, "runtime", "bin"), false);
+                using (ProtectedFile(Path.Combine(install, "runtime", "bin", "java.exe"), false, 100 * 1024 * 1024)) { }
+                return image;
             }
         }
         private static int Main(string[] args)
@@ -99,12 +111,19 @@ namespace Npdms.Dac.Desktop
             {
                 if (Environment.OSVersion.Platform != PlatformID.Win32NT || !Environment.Is64BitProcess
                     || args.Length != 1 || (args[0] != "snapshot" && args[0] != "start")) return 2;
-                CheckService();
-                DirectoryCheck(ClientConfiguration.DataRoot, true);
-                using (ProtectedFile(Path.Combine(ClientConfiguration.DataRoot, "client.xml"), false, 16384))
+                string serviceImage = CheckService();
+                using (var configurationFile = ProtectedFile(Path.Combine(ClientConfiguration.DataRoot, "client.xml"), false, 16384, true))
                 using (var service = new ServiceController(ClientConfiguration.ServiceName))
                 {
-                    var configuration = ClientConfiguration.Load(ClientConfiguration.DataRoot);
+                    // Same original constructor/parser rules, but parse the authenticated
+                    // open handle instead of reopening a path that might have been replaced.
+                    ClientConfiguration configuration;
+                    using (var reader = System.Xml.XmlReader.Create(configurationFile,
+                        new System.Xml.XmlReaderSettings { DtdProcessing = System.Xml.DtdProcessing.Prohibit, XmlResolver = null }))
+                    {
+                        var doc = System.Xml.Linq.XDocument.Load(reader);
+                        configuration = new ClientConfiguration((string)doc.Root.Element("serverUrl"), (string)doc.Root.Element("webOrigin"));
+                    }
                     if (args[0] == "start")
                     {
                         if (service.Status == ServiceControllerStatus.Stopped) service.Start();
@@ -112,17 +131,26 @@ namespace Npdms.Dac.Desktop
                     }
                     var result = new Dictionary<string, object> {
                         {"serviceState", service.Status.ToString()}, {"serverUrl", configuration.ServerUrl},
-                        {"webOrigin", configuration.WebOrigin}, {"metadata", null}
+                        {"webOrigin", configuration.WebOrigin}, {"metadata", null}, {"ownershipVerified", false}
                     };
                     if (service.Status == ServiceControllerStatus.Running)
                     {
                         string runtime = ClientConfiguration.RuntimeDirectory(ClientConfiguration.DataRoot);
-                        DirectoryCheck(runtime, true);
                         string file = Path.Combine(runtime, "endpoint.properties");
                         // An absent endpoint while Java starts is not a usable identity.
-                        if (File.Exists(file)) using (var stream = ProtectedFile(file, true, 4096))
+                        if (File.Exists(file)) using (var stream = ProtectedFile(file, true, 4096, true))
                         using (var reader = new StreamReader(stream, new System.Text.UTF8Encoding(false, true)))
-                            result["metadata"] = reader.ReadToEnd();
+                        {
+                            string metadata = reader.ReadToEnd();
+                            var fields = System.Text.RegularExpressions.Regex.Match(metadata,
+                                "\\Aport=(828[0-9])\\npid=([1-9][0-9]*)\\npublicKey=([a-f0-9]{64})\\ninstanceId=([a-f0-9-]{36})\\n\\z");
+                            uint pid; int port;
+                            if (!fields.Success || !UInt32.TryParse(fields.Groups[2].Value, out pid)
+                                || !Int32.TryParse(fields.Groups[1].Value, out port)) throw new IOException();
+                            ServiceOwnership.Verify(ClientConfiguration.ServiceName, serviceImage, pid, port);
+                            result["metadata"] = metadata;
+                            result["ownershipVerified"] = true;
+                        }
                     }
                     Console.WriteLine(new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(result));
                     return 0;

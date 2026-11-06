@@ -20,7 +20,8 @@ function createWindowsServiceHost({ helper, execFile = cp.execFile }) {
       if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) throw Error();
       const manifest = JSON.parse(fs.readFileSync(path.join(path.dirname(helper), 'bridge-manifest.json'), 'utf8'));
       const digest = crypto.createHash('sha256').update(fs.readFileSync(helper)).digest('hex');
-      if (manifest.format !== 1 || manifest.sha256 !== digest || manifest.bytes !== stat.size) throw Error();
+      if (manifest.format !== 1 || manifest.sha256 !== digest || manifest.bytes !== stat.size ||
+          manifest.ownershipBoundary !== 'scm-process-listener') throw Error();
     } catch { throw fail('DAC_WINDOWS_SERVICE_REQUIRED'); }
     const env = {};
     for (const name of ['SystemRoot', 'WINDIR', 'TEMP', 'TMP']) if (process.env[name]) env[name] = process.env[name];
@@ -45,12 +46,12 @@ function config(input) {
   return Object.freeze({ serverUrl: input.serverUrl, webOrigin: input.webOrigin });
 }
 function snapshot(value, expected) {
-  if (!value || Object.keys(value).sort().join(',') !== 'metadata,serverUrl,serviceState,webOrigin' ||
+  if (!value || Object.keys(value).sort().join(',') !== 'metadata,ownershipVerified,serverUrl,serviceState,webOrigin' ||
       !['Stopped', 'StartPending', 'Running', 'StopPending', 'Paused', 'PausePending', 'ContinuePending'].includes(value.serviceState))
     throw fail('DAC_WINDOWS_SERVICE_UNTRUSTED');
   if (value.serverUrl !== expected.serverUrl || value.webOrigin !== expected.webOrigin) throw fail('DAC_ENVIRONMENT_MISMATCH');
-  if (value.metadata === null) return null;
-  if (typeof value.metadata !== 'string' || value.metadata.length > 4096 || value.serviceState !== 'Running') throw fail('DAC_WINDOWS_SERVICE_UNTRUSTED');
+  if (value.metadata === null && value.ownershipVerified === false) return null;
+  if (value.ownershipVerified !== true || typeof value.metadata !== 'string' || value.metadata.length > 4096 || value.serviceState !== 'Running') throw fail('DAC_WINDOWS_SERVICE_UNTRUSTED');
   try { return Object.freeze({ ...parseMetadata(value.metadata), ...expected }); }
   catch { throw fail('DAC_WINDOWS_SERVICE_UNTRUSTED'); }
 }

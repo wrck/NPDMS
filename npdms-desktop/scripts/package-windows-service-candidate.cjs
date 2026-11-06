@@ -15,7 +15,8 @@ async function main() {
   const bridgeRecord = JSON.parse(fs.readFileSync(path.join(bridge, 'bridge-manifest.json'), 'utf8'));
   const helper = fs.readFileSync(path.join(bridge, 'NpdmsServiceBridge.exe'));
   if (bridgeRecord.format !== 1 || bridgeRecord.sha256 !== crypto.createHash('sha256').update(helper).digest('hex') ||
-      bridgeRecord.bytes !== helper.length || bridgeRecord.releaseFrozen !== false) throw Error('Candidate bridge manifest mismatch');
+      bridgeRecord.bytes !== helper.length || bridgeRecord.releaseFrozen !== false ||
+      bridgeRecord.ownershipBoundary !== 'scm-process-listener') throw Error('Candidate bridge manifest mismatch');
   fs.mkdirSync(output, { recursive: true });
   const project = path.join(output, 'app-source'), app = path.resolve(__dirname, '..');
   fs.mkdirSync(project);
