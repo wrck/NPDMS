@@ -7,7 +7,7 @@ This records a new reconstruction, not recovery of unavailable prior work.
 
 - `npm ci` completed using the committed dependency lock.
 - Official Electron 45.2.3 Linux x64 binary downloaded and extracted by its official installer with the package's checksums. The binary was not launched.
-- `npm test`: 69 focused Node tests passed including platform resource/API isolation, main-process wiring, DOM interactions, manifest integrity, read-only DAC probing, synthetic trial and package-archive tests. These tests use synthetic authorization policies, fake DAC processes and an in-memory keyring substitute. One offline queue test kills its own isolated Node child to verify durable crash recovery.
+- `npm test`: 75 focused Node tests passed including platform resource/API isolation, main-process wiring, DOM interactions, manifest integrity, read-only DAC probing, synthetic trial and package-archive tests. These tests use synthetic authorization policies, fake DAC processes and an in-memory keyring substitute. One offline queue test kills its own isolated Node child to verify durable crash recovery.
 - `npm run check`: JavaScript syntax passed.
 - All 23 source/test files at checkpoint `ebfe984339141ca32f1afc6191ad5d76a36a9fcc` were fetched again from GitHub and matched byte-for-byte and by Git blob SHA. Compare against baseline showed only additions under `npdms-desktop/`.
 - No CI statuses were returned for that checkpoint. This is not a CI pass.
@@ -53,3 +53,5 @@ Pinned pnpm 9.15.5 installed all 1,222 dependencies from the original lock. Vite
 ## DAC build limitation
 
 The baseline DAC-specific web application imports missing `@/data/common-commands`; its test run had 100 passing tests but two suites could not import. This does not affect the full NPDMS Vue build above. Java25.0.1+8 and Maven3.8.6 were obtained from official sources, but the Java reactor ended with a failing SSH concurrency test, and no complete service JAR was generated. Further Java build execution is stopped pending an approved route. Staged Linux JRE/parser payloads alone do not constitute a bundled DAC service or production package.
+
+Linux DAC identity provisioning and inherited-file-descriptor flock adapters passed six additional tests. Actual tiny Node children proved lock retention when the parent was killed and release only on owned-child exit. No DAC service, Electron or new Java build was launched by these tests.
