@@ -109,4 +109,4 @@ function createReadinessProbe({runtimeFile,protectedDirectory,ownerUid=process.g
     return {pid:metadata.pid,instanceId:metadata.instanceId,status};
   };
 }
-module.exports={createReadinessProbe,parseMetadata,readMetadata};
+module.exports={createReadinessProbe,parseMetadata,readMetadata,requestStatus,validateStatus};

@@ -2,12 +2,18 @@
 const ui = id => document.getElementById(id), api = window.npdmsDesktop;
 let busy = false, dacBusy = false;
 const errors = { DAC_INVALID_CONFIGURATION: '服务配置无效，仅接受指定的 HTTPS 服务。', DAC_BUSY: '服务正在执行其他启动或停止操作。', DAC_UNSUPPORTED_PLATFORM: '当前平台不支持此 Linux 服务包。', DAC_RESOURCES_MISSING: '内置 DAC 运行包不完整，服务保持关闭。', DAC_RESOURCES_INVALID: '内置 DAC 文件校验失败，服务保持关闭。', DAC_RESOURCES_UNVERIFIED: '缺少受验证的 DAC 打包清单，服务保持关闭。', DAC_VAULT_UNAVAILABLE: 'Linux 系统密钥环不可用，服务保持关闭。', DAC_RECOVERY_REQUIRED: '服务密钥或身份需要恢复，现有数据不会被重置。', DAC_ENVIRONMENT_MISMATCH: '服务环境与已有身份不匹配，已停止操作。', DAC_DATA_UNTRUSTED: '服务数据目录未通过安全检查。', DAC_LOCK_UNAVAILABLE: '独立服务仍被占用，未启动其他进程。', DAC_START_FAILED: '服务未通过启动验证，请查看状态。', DAC_START_CANCELLED: '服务启动已取消。', INVALID_SERVER_ORIGIN: '请输入有效的 HTTPS 服务地址。', HTTPS_ORIGIN_REQUIRED: '请输入不含路径、账户信息或参数的 HTTPS 服务地址。', AUTH_EXPIRED: '本轮15分钟测试授权已过期，草稿和队列已锁定。', STORE_LOCKED: '试验数据仍被其他进程占用。', CLOCK_UNTRUSTED: '检测到时钟回退，已锁定试验数据。', FRONTEND_NOT_BUILT: '尚未装配内置 Vue 前端，请先完成前端构建。', PLATFORM_BUSY: '平台正在打开，请稍后。', OPERATION_UNAVAILABLE: '操作不可用。请检查 Linux 系统密钥环和运行环境；不会退回明文存储。' };
+Object.assign(errors, { DAC_WINDOWS_SERVICE_REQUIRED: '缺少 Windows 服务适配组件。', DAC_WINDOWS_SERVICE_UNTRUSTED: '请先安装原生 DAC，并检查服务配置及目录权限。', DAC_WINDOWS_DISCONNECTED: '已断开桌面连接，Windows DAC 服务继续由系统管理。' });
 const explain = code => errors[code] || `操作未完成（${code || 'UNKNOWN'}）。数据未被自动重置。`;
 async function refreshStatus() {
   const result = await api.status(); if (!result.ok) throw new Error(result.code);
   const status = result.data;
   ui('offline').textContent = status.offline.reason;
+  const windowsService = status.dac.mode === 'windows-installed-service';
+  ui('dac-start').textContent = windowsService ? '启动 / 连接已安装 DAC' : '启动内置服务';
+  ui('dac-stop').textContent = windowsService ? '断开桌面连接' : '停止服务';
+  ui('dac-help').textContent = windowsService ? '须先安装原生 Windows DAC，且其后端及网页来源均与上方 HTTPS 地址一致。密钥和进程由原生服务管理；断开或关闭桌面不会停止该服务。本安装候选不安装或升级原生服务。' : '启动使用上方 HTTPS 地址，不会自动启动；断网不产生新的采集授权。';
   const dacLabels = { 'not-configured': 'DAC 尚未装配', 'not-started': '服务尚未启动', starting: '服务正在启动', ready: '独立服务已就绪，业务链路尚待验证', stopping: '等待独立服务退出，锁仍保留', stopped: '服务已停止', blocked: '服务保持关闭' };
+  if (windowsService) { dacLabels.stopped = '桌面已断开'; dacLabels['not-started'] = '尚未连接已安装 DAC'; dacLabels.blocked = '桌面连接不可用'; }
   ui('dac').textContent = `${dacLabels[status.dac.state] || '服务状态不可用'}${errors[status.dac.reason] ? `：${explain(status.dac.reason)}` : ''}`;
   if (status.dac.state === 'ready' && typeof status.dac.pairingCode === 'string') ui('dac').textContent += ` · 配对码 ${status.dac.pairingCode}`;
   ui('dac-start').disabled = dacBusy || status.dac.canStart !== true;

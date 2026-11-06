@@ -9,6 +9,8 @@ const { createPlatformHandler, isAllowedPlatformRequest } = require('./platform.
 const { LinuxKeyVault } = require('./key-store.cjs');
 const { loadMasterKey } = require('./dac/key-vault.cjs');
 const { createDacRuntime, DAC_ERROR_CODES } = require('./dac/runtime.cjs');
+const { createWindowsServiceRuntime, WINDOWS_ERROR_CODES } = require('./dac/windows-service.cjs');
+const hostPlatform = require('node:process').platform;
 const { createDacBridge } = require('./dac/bridge.cjs');
 const { createTrialSession } = require('./offline/trial.cjs');
 const { recoverAbandonedLock } = require('./offline/index.cjs');
@@ -80,7 +82,7 @@ async function startTrial() {
   })();
   try { return await trialStarting; } finally { trialStarting = null; }
 }
-const SAFE_CODES = new Set([...DAC_ERROR_CODES, 'AUTH_EXPIRED', 'CLOCK_UNTRUSTED', 'STORE_LOCKED', 'STORE_CORRUPT',
+const SAFE_CODES = new Set([...DAC_ERROR_CODES, ...WINDOWS_ERROR_CODES, 'AUTH_EXPIRED', 'CLOCK_UNTRUSTED', 'STORE_LOCKED', 'STORE_CORRUPT',
   'TRIAL_INPUT_REJECTED', 'TRIAL_CAPACITY_EXCEEDED', 'TRIAL_LEASE_MISSING', 'TRIAL_LEASE_INVALID',
   'SYNC_BUSY', 'NOT_BLOCKED', 'RECOVERY_REQUIRED', 'FRONTEND_NOT_BUILT', 'PLATFORM_BUSY', 'INVALID_SERVER_ORIGIN', 'HTTPS_ORIGIN_REQUIRED']);
 function safeCode(error) { return SAFE_CODES.has(error?.code || error?.message) ? (error.code || error.message) : 'OPERATION_UNAVAILABLE'; }
@@ -96,7 +98,9 @@ else {
   app.on('second-instance', () => { if (shellWindow) { if (shellWindow.isMinimized()) shellWindow.restore(); shellWindow.focus(); } });
   app.whenReady().then(async () => {
     Menu.setApplicationMenu(null); denyPermissions(session.defaultSession);
-    dacRuntime = createDacRuntime({ resourcesDirectory: join(__dirname, '../resources/dac'),
+    dacRuntime = hostPlatform === 'win32' ? createWindowsServiceRuntime({
+      helper: join(__dirname, '../resources/windows-service/NpdmsServiceBridge.exe')
+    }) : createDacRuntime({ resourcesDirectory: join(__dirname, '../resources/dac'),
       dataRoot: join(app.getPath('userData'), 'dac-service-v1'), vault: keyVault() });
     shellWindow = new BrowserWindow({ width: 1100, height: 900, minWidth: 800, minHeight: 650,
       title: 'NPDMS 桌面客户端', webPreferences: secureWebPreferences(join(__dirname, 'preload.cjs')) });

@@ -9,7 +9,7 @@ const { createRequire } = require('node:module');
 const main = path.join(__dirname, '../src/main.cjs');
 const realRequire = createRequire(main);
 const tick = () => new Promise(resolve => setImmediate(resolve));
-async function fixture(overrides = {}) {
+async function fixture(overrides = {}, platform = process.platform) {
   const dacCalls = [], dacOptions = [], bridgeOptions = [];
   const runtime = { status: () => ({ state: 'blocked', reason: 'DAC_PAYLOAD_INCOMPLETE', canStart: false, canStop: false }), start: async config => { dacCalls.push(config); return { state: 'ready' }; }, stop: async () => ({ state: 'stopped' }), ...overrides };
   const handlers = new Map(), windows = [], sessions = [];
@@ -23,7 +23,7 @@ async function fixture(overrides = {}) {
   }
   const app = new EventEmitter(); Object.assign(app, { requestSingleInstanceLock: () => true, whenReady: async () => {}, getVersion: () => '0.1.0', getPath: () => '/unused-test-userdata', quit() {}, exit() { throw Error('unexpected exit'); } });
   const electron = { app, BrowserWindow: Window, ipcMain: { handle: (name, fn) => handlers.set(name, fn) }, session: { defaultSession: makeSession(), fromPartition: name => { assert.equal(name.startsWith('persist:'), false); return makeSession(); } }, Menu: { setApplicationMenu() {} }, safeStorage: { isEncryptionAvailable: () => false } };
-  vm.runInNewContext(fs.readFileSync(main, 'utf8'), { require: name => name === 'electron' ? electron : name === './dac/bridge.cjs' ? { createDacBridge: options => { bridgeOptions.push(options); return async () => new Response('{\"ok\":true}'); } } : name === './dac/runtime.cjs' ? { DAC_ERROR_CODES: ['DAC_RESOURCES_MISSING', 'DAC_RECOVERY_REQUIRED'], createDacRuntime: options => { dacOptions.push(options); return runtime; } } : name === 'node:fs' ? { ...fs, existsSync: file => file.endsWith('frontend/index.html') || fs.existsSync(file) } : realRequire(name), __dirname: path.dirname(main), console });
+  vm.runInNewContext(fs.readFileSync(main, 'utf8'), { require: name => name === 'electron' ? electron : name === 'node:process' ? { platform } : name === './dac/windows-service.cjs' ? { WINDOWS_ERROR_CODES: ['DAC_WINDOWS_SERVICE_UNTRUSTED'], createWindowsServiceRuntime: options => { dacOptions.push(options); return runtime; } } : name === './dac/bridge.cjs' ? { createDacBridge: options => { bridgeOptions.push(options); return async () => new Response('{\"ok\":true}'); } } : name === './dac/runtime.cjs' ? { DAC_ERROR_CODES: ['DAC_RESOURCES_MISSING', 'DAC_RECOVERY_REQUIRED'], createDacRuntime: options => { dacOptions.push(options); return runtime; } } : name === 'node:fs' ? { ...fs, existsSync: file => file.endsWith('frontend/index.html') || fs.existsSync(file) } : realRequire(name), __dirname: path.dirname(main), console });
   await tick();
   const event = { sender: windows[0].webContents, senderFrame: windows[0].webContents.mainFrame };
   return { handlers, windows, sessions, event, app, dacCalls, dacOptions, bridgeOptions };
@@ -100,4 +100,12 @@ test('platform bridge stays on configured origin and cannot access the shell IPC
   for (const channel of ['desktop:dac-start', 'desktop:dac-stop', 'desktop:status']) await assert.rejects(f.handlers.get(channel)(platformEvent, 'https://npdms.example'), /UNTRUSTED/);
   let decision; f.sessions[1].request({ url: 'http://127.0.0.1:8280/api/v1/desktop/status', resourceType: 'xhr' }, value => { decision = value; });
   assert.equal(decision.cancel, true);
+});
+
+ test('Windows main selects fixed service helper and never the Linux key/lock runtime', async () => {
+  const f = await fixture({}, 'win32');
+  assert.equal(f.dacOptions.length, 1);
+  assert.deepEqual(Object.keys(f.dacOptions[0]), ['helper']);
+  assert.equal(f.dacOptions[0].helper, path.join(__dirname, '../resources/windows-service/NpdmsServiceBridge.exe'));
+  assert.equal((await f.handlers.get('desktop:dac-start')(f.event, 'https://npdms.example')).ok, true);
 });

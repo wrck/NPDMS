@@ -77,3 +77,12 @@ test('DAC pending clicks are serialized and show only the safe service state', a
   assert.match(f.get('dac-action').textContent, /未发起配对/); assert.match(f.get('dac').textContent, /业务链路尚待验证/); assert.match(f.get('dac').textContent, /ABCD/);
   f.get('dac-stop').click(); await tick(); assert.equal(stopped, 1); assert.equal(f.get('dac-stop').disabled, true);
 });
+
+test('Windows controls state native-service prerequisite and disconnect semantics', async t => {
+  const f = setup(t, { status: async () => ({ ok: true, data: { version: '0.1.0', baseline: 'd4f6918', frontend: { bundled: true }, offline: { reason: '未启用' }, dac: { mode: 'windows-installed-service', state: 'stopped', canStart: true, canStop: false, reason: 'DAC_WINDOWS_DISCONNECTED' }, trial: { state: 'not-started', keyVaultAvailable: false } } }) });
+  await tick();
+  assert.equal(f.get('dac-stop').textContent, '断开桌面连接');
+  assert.match(f.get('dac-help').textContent, /须先安装原生 Windows DAC/);
+  assert.match(f.get('dac-help').textContent, /不会停止该服务/);
+  assert.match(f.get('dac').textContent, /桌面已断开/);
+});
