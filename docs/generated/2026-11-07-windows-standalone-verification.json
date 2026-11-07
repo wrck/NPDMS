@@ -1,0 +1,33 @@
+{
+  "filename": "SDP-Standalone-1.1.8-Windows-x64-CANDIDATE.exe",
+  "bytes": 202569129,
+  "sha256": "f02af728c15aad80a1f810e62e94322439a52002c2a7818dd5b15a6afa240692",
+  "nativeFilesVerified": 339,
+  "desktopFilesVerified": 2925,
+  "uniquePayloadFilesVerified": 3264,
+  "archiveFileEntries": 3265,
+  "extractionChecksumsVerified": true,
+  "allExtractedFileSizesAndSha256Match": true,
+  "unsigned": true,
+  "peCertificateTable": [
+    0,
+    0
+  ],
+  "compilerVersion": "Inno Setup 7.0.2 x64",
+  "compilerDownloadSha256": "5ad54ca3def786f8f4212552e54cc6d8d61329e2d24a1cfee0571d42c2684ff1",
+  "sourceBaseline": "265d48f4450c74cfc7f8e9b26d922a57867ff794",
+  "originalNativeInstallerSha256": "59e4f9db7d8e51ae2d03e6d118d6624b8fa306c723f424daa97b42ce9206ac3c",
+  "candidateInnoSha256": "b5f8e17eeb082bfd19902b79b564873a9223b9f5cd91ae1086924aafc68e6820",
+  "nativeServiceIncluded": true,
+  "requiresExistingNativeDac": false,
+  "freshMachineOnly": true,
+  "upgradeSupported": false,
+  "releaseFrozen": false,
+  "windowsInstallationTested": false,
+  "windowsServiceAclDpapiTested": false,
+  "offlineBusinessEnabled": false,
+  "uploadAttempted": false,
+  "attachmentId": null,
+  "extractorSource": "russellbanks/inno@b24d75f318b0689be25eefa4a52c4534749a738c",
+  "preparationTestsPassed": 8
+}
